@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Chore Tracker</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
+  <title>Do Your Chores, Bruh</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -110,12 +110,32 @@
       modal: { background: dark ? '#1e1e2f' : 'white', borderRadius: '20px', padding: '24px', maxWidth: '360px', width: '100%', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', maxHeight: '90vh', overflowY: 'auto' },
     });
 
+    function AppHeader({ darkMode }) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', paddingBottom: '12px', borderBottom: darkMode ? '1px solid #333' : '1px solid #e0e0e0' }}>
+          <img src="favicon.ico" alt="Logo" style={{ width: '48px', height: '48px' }} />
+          <span style={{ fontSize: '18px', fontWeight: '700', color: darkMode ? '#e0e0e0' : '#2C3E50' }}>Do Your Chores, Bruh</span>
+        </div>
+      );
+    }
+
+    function AppFooter({ darkMode }) {
+      return (
+        <div style={{ textAlign: 'center', padding: '20px 16px', marginTop: 'auto', color: darkMode ? '#666' : '#999', fontSize: '12px' }}>
+          Do Your Chores, Bruh © 2026 Jordan Family
+        </div>
+      );
+    }
+
     function UserSelect({ onSelect, users, darkMode }) {
       const styles = getStyles(darkMode);
       return (
-        <div style={{ ...styles.container, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+        <div style={{ ...styles.container, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', position: 'relative' }}>
           <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-            <h1 style={{ ...styles.title, fontSize: '36px' }}>📋 Chore Tracker</h1>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', marginBottom: '8px' }}>
+              <img src="favicon.ico" alt="Logo" style={{ width: '64px', height: '64px' }} />
+              <h1 style={{ ...styles.title, fontSize: '28px', margin: 0 }}>Do Your Chores, Bruh</h1>
+            </div>
             <p style={styles.subtitle}>Who's checking in?</p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', maxWidth: '320px', width: '100%', marginBottom: '24px' }}>
@@ -127,6 +147,9 @@
             ))}
           </div>
           <button onClick={() => onSelect('admin')} style={{ ...styles.button, background: darkMode ? '#333' : '#2C3E50', color: 'white' }}>⚙️ Admin</button>
+          <div style={{ position: 'absolute', bottom: '20px', left: 0, right: 0, textAlign: 'center', color: darkMode ? '#666' : '#999', fontSize: '12px' }}>
+            Do Your Chores, Bruh © 2026 Jordan Family
+          </div>
         </div>
       );
     }
@@ -141,7 +164,7 @@
       };
       const handleKeyDown = (e) => { if (e.key === 'Enter') handleSubmit(); };
       return (
-        <div style={{ ...styles.container, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+        <div style={{ ...styles.container, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', position: 'relative' }}>
           <div style={{ ...styles.card, maxWidth: '320px', width: '100%' }}>
             <h2 style={{ ...styles.title, fontSize: '20px', textAlign: 'center', marginBottom: '20px' }}>Enter Admin PIN</h2>
             <div>
@@ -151,6 +174,9 @@
                 <button type="button" onClick={handleSubmit} style={{ ...styles.button, flex: 1, background: darkMode ? '#4ECDC4' : '#2C3E50', color: 'white' }}>Enter</button>
               </div>
             </div>
+          </div>
+          <div style={{ position: 'absolute', bottom: '20px', left: 0, right: 0, textAlign: 'center', color: darkMode ? '#666' : '#999', fontSize: '12px' }}>
+            Do Your Chores, Bruh © 2026 Jordan Family
           </div>
         </div>
       );
@@ -469,35 +495,39 @@
       const mandatoryChores = filteredChores.filter(c => c.type === 'mandatory');
       const optionalChores = filteredChores.filter(c => c.type === 'optional');
       return (
-        <div style={{ ...styles.container, padding: '16px', paddingBottom: '100px' }}>
-          <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <div>
-              <h1 style={{ ...styles.title, fontSize: '22px' }}>{isAdmin ? '⚙️ Admin View' : `Hi, ${currentUser}!`}</h1>
-              <p style={styles.subtitle}>{isAdmin ? 'Manage chores below' : 'Complete chores to earn points'}</p>
-            </div>
-            <button onClick={onLogout} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: '14px' }}>← Switch</button>
-          </header>
-          <Scoreboard completions={completions} users={users} weekOffset={weekOffset} onWeekChange={onWeekChange} darkMode={darkMode} />
-          <FilterBar filter={filter} onFilterChange={setFilter} users={users} darkMode={darkMode} />
-          {mandatoryChores.length > 0 && (
-            <section style={{ marginBottom: '24px' }}>
-              <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}><span style={{ color: '#FF6B6B' }}>📌</span> Required Chores</h2>
-              {mandatoryChores.map(chore => <ChoreCard key={chore.id} chore={chore} currentUser={currentUser} users={users} isAdmin={isAdmin} onComplete={onComplete} onEdit={onEdit} darkMode={darkMode} />)}
-            </section>
-          )}
-          {optionalChores.length > 0 && (
-            <section style={{ marginBottom: '24px' }}>
-              <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}><span style={{ color: '#4ECDC4' }}>⭐</span> Optional Chores</h2>
-              {optionalChores.map(chore => <ChoreCard key={chore.id} chore={chore} currentUser={currentUser} users={users} isAdmin={isAdmin} onComplete={onComplete} onEdit={onEdit} darkMode={darkMode} />)}
-            </section>
-          )}
-          {filteredChores.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎉</div>
-              <h3 style={{ fontSize: '20px', fontWeight: '700', margin: '0 0 8px 0' }}>All done!</h3>
-              <p style={{ color: '#999', margin: 0 }}>No chores right now. Enjoy!</p>
-            </div>
-          )}
+        <div style={{ ...styles.container, padding: '16px', paddingBottom: '100px', display: 'flex', flexDirection: 'column' }}>
+          <AppHeader darkMode={darkMode} />
+          <div style={{ flex: 1 }}>
+            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div>
+                <h1 style={{ ...styles.title, fontSize: '22px' }}>{isAdmin ? '⚙️ Admin View' : `Hi, ${currentUser}!`}</h1>
+                <p style={styles.subtitle}>{isAdmin ? 'Manage chores below' : 'Complete chores to earn points'}</p>
+              </div>
+              <button onClick={onLogout} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: '14px' }}>← Switch</button>
+            </header>
+            <Scoreboard completions={completions} users={users} weekOffset={weekOffset} onWeekChange={onWeekChange} darkMode={darkMode} />
+            <FilterBar filter={filter} onFilterChange={setFilter} users={users} darkMode={darkMode} />
+            {mandatoryChores.length > 0 && (
+              <section style={{ marginBottom: '24px' }}>
+                <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}><span style={{ color: '#FF6B6B' }}>📌</span> Required Chores</h2>
+                {mandatoryChores.map(chore => <ChoreCard key={chore.id} chore={chore} currentUser={currentUser} users={users} isAdmin={isAdmin} onComplete={onComplete} onEdit={onEdit} darkMode={darkMode} />)}
+              </section>
+            )}
+            {optionalChores.length > 0 && (
+              <section style={{ marginBottom: '24px' }}>
+                <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}><span style={{ color: '#4ECDC4' }}>⭐</span> Optional Chores</h2>
+                {optionalChores.map(chore => <ChoreCard key={chore.id} chore={chore} currentUser={currentUser} users={users} isAdmin={isAdmin} onComplete={onComplete} onEdit={onEdit} darkMode={darkMode} />)}
+              </section>
+            )}
+            {filteredChores.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎉</div>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', margin: '0 0 8px 0' }}>All done!</h3>
+                <p style={{ color: '#999', margin: 0 }}>No chores right now. Enjoy!</p>
+              </div>
+            )}
+          </div>
+          <AppFooter darkMode={darkMode} />
           <nav style={styles.nav}>
             <button style={{ ...styles.navBtn, color: '#45B7D1' }}><span style={{ fontSize: '20px' }}>📋</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Chores</span></button>
             <button onClick={() => onNavigate('history')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>📊</span><span style={{ fontSize: '11px', fontWeight: '600' }}>History</span></button>
@@ -517,19 +547,23 @@
       }, [completions, selectedDate]);
       const getUser = (name) => users.find(u => u.name === name) || { color: '#999', emoji: '👤' };
       return (
-        <div style={{ ...styles.container, padding: '16px', paddingBottom: '100px' }}>
-          <header style={{ marginBottom: '20px' }}><h1 style={{ ...styles.title, fontSize: '22px' }}>📊 Completed Chores</h1><p style={styles.subtitle}>See what's been accomplished</p></header>
-          <div style={{ ...styles.card, marginBottom: '20px' }}><label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#999', marginBottom: '8px' }}>Select Date</label><input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} style={styles.input} /></div>
-          {filteredCompletions.length > 0 ? (
-            <div>{filteredCompletions.map((c) => { const user = getUser(c.completedBy); return (
-              <div key={c.id} style={{ ...styles.card, borderLeft: `4px solid ${user.color}`, marginBottom: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1 }}><div style={{ fontWeight: '600', marginBottom: '4px' }}>{c.description}</div><div style={{ fontSize: '13px', color: '#999' }}>{user.emoji} <span style={{ fontWeight: '600' }}>{c.completedBy}</span><span style={{ margin: '0 8px' }}>•</span>{new Date(c.completedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</div></div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>{c.points > 0 && <div style={{ fontSize: '20px', fontWeight: '700', color: '#FFE66D' }}>+{c.points}</div>}{isAdmin && <button onClick={() => onUndo(c)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#999' }} title="Undo">↩️</button>}</div>
+        <div style={{ ...styles.container, padding: '16px', paddingBottom: '100px', display: 'flex', flexDirection: 'column' }}>
+          <AppHeader darkMode={darkMode} />
+          <div style={{ flex: 1 }}>
+            <header style={{ marginBottom: '20px' }}><h1 style={{ ...styles.title, fontSize: '22px' }}>📊 Completed Chores</h1><p style={styles.subtitle}>See what's been accomplished</p></header>
+            <div style={{ ...styles.card, marginBottom: '20px' }}><label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#999', marginBottom: '8px' }}>Select Date</label><input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} style={styles.input} /></div>
+            {filteredCompletions.length > 0 ? (
+              <div>{filteredCompletions.map((c) => { const user = getUser(c.completedBy); return (
+                <div key={c.id} style={{ ...styles.card, borderLeft: `4px solid ${user.color}`, marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1 }}><div style={{ fontWeight: '600', marginBottom: '4px' }}>{c.description}</div><div style={{ fontSize: '13px', color: '#999' }}>{user.emoji} <span style={{ fontWeight: '600' }}>{c.completedBy}</span><span style={{ margin: '0 8px' }}>•</span>{new Date(c.completedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</div></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>{c.points > 0 && <div style={{ fontSize: '20px', fontWeight: '700', color: '#FFE66D' }}>+{c.points}</div>}{isAdmin && <button onClick={() => onUndo(c)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#999' }} title="Undo">↩️</button>}</div>
+                  </div>
                 </div>
-              </div>
-            ); })}</div>
-          ) : (<div style={{ textAlign: 'center', padding: '60px 20px' }}><div style={{ fontSize: '40px', marginBottom: '12px' }}>📭</div><p style={{ color: '#999', margin: 0 }}>No chores completed on this day</p></div>)}
+              ); })}</div>
+            ) : (<div style={{ textAlign: 'center', padding: '60px 20px' }}><div style={{ fontSize: '40px', marginBottom: '12px' }}>📭</div><p style={{ color: '#999', margin: 0 }}>No chores completed on this day</p></div>)}
+          </div>
+          <AppFooter darkMode={darkMode} />
           <nav style={styles.nav}>
             <button onClick={() => onNavigate('chores')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>📋</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Chores</span></button>
             <button style={{ ...styles.navBtn, color: '#45B7D1' }}><span style={{ fontSize: '20px' }}>📊</span><span style={{ fontSize: '11px', fontWeight: '600' }}>History</span></button>
@@ -544,11 +578,15 @@
       const styles = getStyles(darkMode);
       const [showCustomize, setShowCustomize] = useState(false);
       return (
-        <div style={{ ...styles.container, padding: '16px', paddingBottom: '100px' }}>
-          <header style={{ marginBottom: '20px' }}><h1 style={{ ...styles.title, fontSize: '22px' }}>🎨 Settings</h1><p style={styles.subtitle}>Customize the app</p></header>
-          {showCustomize && <CustomizeKidsModal users={users} onSave={(newUsers) => { onSaveUsers(newUsers); setShowCustomize(false); }} onCancel={() => setShowCustomize(false)} darkMode={darkMode} />}
-          <div style={styles.card}><h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600' }}>Appearance</h3><button onClick={() => { haptic('medium'); onToggleDarkMode(); }} style={{ ...styles.button, width: '100%', background: darkMode ? '#4ECDC4' : '#2C3E50', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>{darkMode ? '☀️ Switch to Light Mode' : '🌙 Switch to Dark Mode'}</button></div>
-          <div style={styles.card}><h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600' }}>Kids</h3><div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>{users.map(user => (<div key={user.name} style={{ background: `${user.color}22`, border: `2px solid ${user.color}`, borderRadius: '12px', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}><span>{user.emoji}</span><span style={{ fontWeight: '600' }}>{user.name}</span></div>))}</div><button onClick={() => setShowCustomize(true)} style={{ ...styles.button, width: '100%', background: darkMode ? '#333' : '#f0f0f0', color: darkMode ? '#ccc' : '#666' }}>✏️ Customize Kids</button></div>
+        <div style={{ ...styles.container, padding: '16px', paddingBottom: '100px', display: 'flex', flexDirection: 'column' }}>
+          <AppHeader darkMode={darkMode} />
+          <div style={{ flex: 1 }}>
+            <header style={{ marginBottom: '20px' }}><h1 style={{ ...styles.title, fontSize: '22px' }}>🎨 Settings</h1><p style={styles.subtitle}>Customize the app</p></header>
+            {showCustomize && <CustomizeKidsModal users={users} onSave={(newUsers) => { onSaveUsers(newUsers); setShowCustomize(false); }} onCancel={() => setShowCustomize(false)} darkMode={darkMode} />}
+            <div style={styles.card}><h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600' }}>Appearance</h3><button onClick={() => { haptic('medium'); onToggleDarkMode(); }} style={{ ...styles.button, width: '100%', background: darkMode ? '#4ECDC4' : '#2C3E50', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>{darkMode ? '☀️ Switch to Light Mode' : '🌙 Switch to Dark Mode'}</button></div>
+            <div style={styles.card}><h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600' }}>Kids</h3><div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>{users.map(user => (<div key={user.name} style={{ background: `${user.color}22`, border: `2px solid ${user.color}`, borderRadius: '12px', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}><span>{user.emoji}</span><span style={{ fontWeight: '600' }}>{user.name}</span></div>))}</div><button onClick={() => setShowCustomize(true)} style={{ ...styles.button, width: '100%', background: darkMode ? '#333' : '#f0f0f0', color: darkMode ? '#ccc' : '#666' }}>✏️ Customize Kids</button></div>
+          </div>
+          <AppFooter darkMode={darkMode} />
           <nav style={styles.nav}>
             <button onClick={() => onNavigate('chores')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>📋</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Chores</span></button>
             <button onClick={() => onNavigate('history')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>📊</span><span style={{ fontSize: '11px', fontWeight: '600' }}>History</span></button>
@@ -661,12 +699,14 @@
         haptic('success');
       };
       return (
-        <div style={{ ...styles.container, padding: '16px', paddingBottom: '100px' }}>
-          <header style={{ marginBottom: '20px' }}><h1 style={{ ...styles.title, fontSize: '22px' }}>⚙️ Manage Chores</h1><p style={styles.subtitle}>Add, edit, or remove chores</p></header>
+        <div style={{ ...styles.container, padding: '16px', paddingBottom: '100px', display: 'flex', flexDirection: 'column' }}>
+          <AppHeader darkMode={darkMode} />
           {deleteConfirm && <ConfirmModal message={deleteConfirm.type === 'chore' ? 'Delete this chore?' : 'Delete this saved chore?'} onConfirm={handleDeleteConfirm} onCancel={() => setDeleteConfirm(null)} darkMode={darkMode} />}
           {showMultiPicker && <MultiUserPickerModal users={users} onConfirm={handleBulkAssign} onCancel={() => setShowMultiPicker(false)} darkMode={darkMode} />}
           {showExclusionModal && <KidExclusionModal users={users} excludeCount={users.length - templates.filter(t => batchSelected.includes(t.id) && getTemplateMode(t) === 'random').length} onConfirm={(excluded) => generateAssignments(excluded)} onCancel={() => setShowExclusionModal(false)} darkMode={darkMode} />}
           {showPreviewModal && <AssignmentPreviewModal assignments={batchAssignments} optionalChores={batchOptional} users={users} onShuffle={() => generateAssignments(excludedKids)} onConfirm={handleConfirmBatch} onCancel={() => setShowPreviewModal(false)} darkMode={darkMode} />}
+          <div style={{ flex: 1 }}>
+            <header style={{ marginBottom: '20px' }}><h1 style={{ ...styles.title, fontSize: '22px' }}>⚙️ Manage Chores</h1><p style={styles.subtitle}>Add, edit, or remove chores</p></header>
           {!showForm && !showTemplates && (
             <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
               <button onClick={() => { resetForm(); setShowForm(true); }} style={{ ...styles.button, flex: 1, background: '#45B7D1', color: 'white', padding: '16px' }}>+ Add New Chore</button>
@@ -748,6 +788,8 @@
               </div>
             ); }) : <div style={{ textAlign: 'center', padding: '40px 20px', color: '#999' }}>No active chores. Add one above!</div>}
           </section>
+          </div>
+          <AppFooter darkMode={darkMode} />
           <nav style={styles.nav}>
             <button onClick={() => onNavigate('chores')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>📋</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Chores</span></button>
             <button onClick={() => onNavigate('history')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>📊</span><span style={{ fontSize: '11px', fontWeight: '600' }}>History</span></button>
@@ -883,7 +925,7 @@
         return (
           <div style={{ ...styles.container, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
+              <img src="favicon.ico" alt="Logo" style={{ width: '64px', height: '64px', marginBottom: '16px' }} />
               <p style={{ color: darkMode ? '#888' : '#999' }}>Loading...</p>
             </div>
           </div>
