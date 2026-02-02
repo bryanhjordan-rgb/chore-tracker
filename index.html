@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Chore Tracker</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+
+    const DEFAULT_USERS = [
+      { name: 'Sophia', emoji: '👧', color: '#FF6B6B' },
+      { name: 'Henry', emoji: '👦', color: '#45B7D1' },
+      { name: 'Charlotte', emoji: '👧', color: '#9B59B6' },
+      { name: 'Maxwell', emoji: '🧒', color: '#4ECDC4' },
+    ];
+
+    const EMOJI_OPTIONS = ['👧', '👦', '🧒', '👶', '🧒🏻', '👧🏻', '👦🏻', '👧🏽', '👦🏽', '🧒🏽', '👧🏿', '👦🏿', '🦸', '🦹', '🧙', '🧚', '🦊', '🐱', '🐶', '🦄', '🐼', '🐨', '🦁', '🐯'];
+    const COLOR_OPTIONS = ['#FF6B6B', '#45B7D1', '#9B59B6', '#4ECDC4', '#FFE66D', '#FF8C42', '#98D8AA', '#E84A5F', '#2A363B', '#F67280'];
+    const ADMIN_PIN = '1234';
+
+    const API_URL = 'https://script.google.com/macros/s/AKfycbyyLaVKgkG5RON_hN6kgFwSNsblccHNsrLCn1vLE0vfR-MGb9TcKKrTKghO-ElleqlG/exec';
+
+    const api = {
+      async getAll() {
+        try {
+          const response = await fetch(`${API_URL}?action=getAll`);
+          return await response.json();
+        } catch (error) {
+          console.error('API getAll error:', error);
+          return null;
+        }
+      },
+      async call(action, data = null, id = null) {
+        try {
+          let url = `${API_URL}?action=${action}`;
+          if (data) url += `&data=${encodeURIComponent(JSON.stringify(data))}`;
+          if (id) url += `&id=${encodeURIComponent(id)}`;
+          await fetch(url, { mode: 'no-cors' });
+          return true;
+        } catch (error) {
+          console.error(`API ${action} error:`, error);
+          return false;
+        }
+      },
+      addChore: (chore) => api.call('addChore', chore),
+      addChores: (chores) => api.call('addChores', chores),
+      updateChore: (chore) => api.call('updateChore', chore),
+      deleteChore: (id) => api.call('deleteChore', null, id),
+      addCompletion: (completion) => api.call('addCompletion', completion),
+      addTemplate: (template) => api.call('addTemplate', template),
+      updateTemplate: (template) => api.call('updateTemplate', template),
+      deleteTemplate: (id) => api.call('deleteTemplate', null, id),
+      updateUsers: (users) => api.call('updateUsers', users),
+    };
+
+    const storage = {
+      get: (key, defaultValue) => {
+        try {
+          const item = localStorage.getItem(key);
+          return item ? JSON.parse(item) : defaultValue;
+        } catch { return defaultValue; }
+      },
+      set: (key, value) => localStorage.setItem(key, JSON.stringify(value))
+    };
+
+    const haptic = (type = 'light') => {
+      if (navigator.vibrate) {
+        const patterns = { light: 10, medium: 20, heavy: 30, success: [10, 50, 20] };
+        navigator.vibrate(patterns[type] || 10);
+      }
+    };
+
+    const getWeekBounds = (date = new Date()) => {
+      const d = new Date(date);
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(d.setDate(diff));
+      monday.setHours(0, 0, 0, 0);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23, 59, 59, 999);
+      return { start: monday, end: sunday };
+    };
+
+    const formatDateShort = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const generateId = () => Math.random().toString(36).substr(2, 9);
+
+    const getStyles = (dark) => ({
+      container: { minHeight: '100vh', background: dark ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' : 'linear-gradient(135deg, #45B7D110 0%, #ffffff 50%, #4ECDC410 100%)', fontFamily: "'Segoe UI', system-ui, sans-serif", color: dark ? '#e0e0e0' : '#2C3E50' },
+      card: { background: dark ? '#1e1e2f' : 'white', borderRadius: '16px', padding: '20px', boxShadow: dark ? '0 4px 20px rgba(0,0,0,0.3)' : '0 4px 20px rgba(0,0,0,0.08)', marginBottom: '16px' },
+      title: { fontSize: '28px', fontWeight: '700', color: dark ? '#ffffff' : '#2C3E50', margin: '0 0 8px 0' },
+      subtitle: { fontSize: '14px', color: dark ? '#888' : '#2C3E5080', margin: 0 },
+      button: { border: 'none', borderRadius: '12px', padding: '12px 24px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', fontSize: '16px' },
+      input: { width: '100%', padding: '12px', border: dark ? '2px solid #333' : '2px solid #2C3E5020', borderRadius: '10px', fontSize: '16px', outline: 'none', boxSizing: 'border-box', background: dark ? '#2a2a3e' : 'white', color: dark ? '#e0e0e0' : '#2C3E50' },
+      nav: { position: 'fixed', bottom: 0, left: 0, right: 0, background: dark ? '#1a1a2e' : 'white', borderTop: dark ? '1px solid #333' : '1px solid #2C3E5010', padding: '12px', display: 'flex', justifyContent: 'space-around' },
+      navBtn: { display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: '8px' },
+      tag: { fontSize: '11px', fontWeight: '600', padding: '4px 10px', borderRadius: '20px', display: 'inline-block' },
+      modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' },
+      modal: { background: dark ? '#1e1e2f' : 'white', borderRadius: '20px', padding: '24px', maxWidth: '360px', width: '100%', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', maxHeight: '90vh', overflowY: 'auto' },
+    });
+
+    function UserSelect({ onSelect, users, darkMode }) {
+      const styles = getStyles(darkMode);
+      return (
+        <div style={{ ...styles.container, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+            <h1 style={{ ...styles.title, fontSize: '36px' }}>📋 Chore Tracker</h1>
+            <p style={styles.subtitle}>Who's checking in?</p>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', maxWidth: '320px', width: '100%', marginBottom: '24px' }}>
+            {users.map((user) => (
+              <button key={user.name} onClick={() => { haptic('medium'); onSelect(user.name); }} style={{ ...styles.button, background: user.color, color: 'white', padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '32px' }}>{user.emoji}</span>
+                <span>{user.name}</span>
+              </button>
+            ))}
+          </div>
+          <button onClick={() => onSelect('admin')} style={{ ...styles.button, background: darkMode ? '#333' : '#2C3E50', color: 'white' }}>⚙️ Admin</button>
+        </div>
+      );
+    }
+
+    function PinEntry({ onSuccess, onCancel, darkMode }) {
+      const styles = getStyles(darkMode);
+      const [pin, setPin] = useState('');
+      const [error, setError] = useState(false);
+      const handleSubmit = () => {
+        if (pin === ADMIN_PIN) { haptic('success'); onSuccess(); }
+        else { haptic('heavy'); setError(true); setPin(''); setTimeout(() => setError(false), 1000); }
+      };
+      const handleKeyDown = (e) => { if (e.key === 'Enter') handleSubmit(); };
+      return (
+        <div style={{ ...styles.container, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+          <div style={{ ...styles.card, maxWidth: '320px', width: '100%' }}>
+            <h2 style={{ ...styles.title, fontSize: '20px', textAlign: 'center', marginBottom: '20px' }}>Enter Admin PIN</h2>
+            <div>
+              <input type="password" inputMode="numeric" value={pin} onChange={(e) => setPin(e.target.value)} onKeyDown={handleKeyDown} style={{ ...styles.input, textAlign: 'center', fontSize: '24px', letterSpacing: '8px', marginBottom: '16px', borderColor: error ? '#FF6B6B' : (darkMode ? '#333' : '#2C3E5020'), background: error ? '#FF6B6B20' : (darkMode ? '#2a2a3e' : 'white') }} placeholder="••••" autoFocus />
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button type="button" onClick={onCancel} style={{ ...styles.button, flex: 1, background: darkMode ? '#333' : '#f0f0f0', color: darkMode ? '#ccc' : '#666' }}>Cancel</button>
+                <button type="button" onClick={handleSubmit} style={{ ...styles.button, flex: 1, background: darkMode ? '#4ECDC4' : '#2C3E50', color: 'white' }}>Enter</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function ConfirmModal({ message, onConfirm, onCancel, darkMode }) {
+      const styles = getStyles(darkMode);
+      return (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modal}>
+            <p style={{ margin: '0 0 20px 0', fontSize: '16px', textAlign: 'center' }}>{message}</p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button onClick={onCancel} style={{ ...styles.button, flex: 1, background: darkMode ? '#333' : '#f0f0f0', color: darkMode ? '#ccc' : '#666' }}>Cancel</button>
+              <button onClick={() => { haptic('medium'); onConfirm(); }} style={{ ...styles.button, flex: 1, background: '#FF6B6B', color: 'white' }}>Delete</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function UserPickerModal({ chore, users, onSelect, onCancel, darkMode }) {
+      const styles = getStyles(darkMode);
+      return (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modal}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '700', textAlign: 'center' }}>Who completed this?</h3>
+            <p style={{ margin: '0 0 20px 0', fontSize: '14px', color: '#999', textAlign: 'center' }}>{chore.description}</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+              {users.map(user => (
+                <button key={user.name} onClick={() => { haptic('medium'); onSelect(user.name); }} style={{ ...styles.button, background: user.color, color: 'white', padding: '16px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '24px' }}>{user.emoji}</span>
+                  <span style={{ fontSize: '14px' }}>{user.name}</span>
+                </button>
+              ))}
+            </div>
+            <button onClick={() => { haptic('light'); onSelect('parent'); }} style={{ ...styles.button, width: '100%', background: darkMode ? '#333' : '#f0f0f0', color: darkMode ? '#ccc' : '#666', marginBottom: '12px' }}>👨‍👩‍👧‍👦 Parent (no points)</button>
+            <button onClick={onCancel} style={{ ...styles.button, width: '100%', background: 'transparent', color: '#999', border: darkMode ? '2px solid #333' : '2px solid #eee' }}>Cancel</button>
+          </div>
+        </div>
+      );
+    }
+
+    function MultiUserPickerModal({ users, onConfirm, onCancel, darkMode }) {
+      const styles = getStyles(darkMode);
+      const [selected, setSelected] = useState([]);
+      const toggleUser = (name) => setSelected(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
+      return (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modal}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '700', textAlign: 'center' }}>Assign to multiple kids</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
+              {users.map(user => (
+                <button key={user.name} onClick={() => { haptic('light'); toggleUser(user.name); }} style={{ ...styles.button, background: selected.includes(user.name) ? user.color : (darkMode ? '#333' : '#f0f0f0'), color: selected.includes(user.name) ? 'white' : (darkMode ? '#ccc' : '#666'), padding: '16px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '24px' }}>{user.emoji}</span>
+                  <span style={{ fontSize: '14px' }}>{user.name}</span>
+                  {selected.includes(user.name) && <span style={{ fontSize: '12px' }}>✓</span>}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button onClick={onCancel} style={{ ...styles.button, flex: 1, background: darkMode ? '#333' : '#f0f0f0', color: darkMode ? '#ccc' : '#666' }}>Cancel</button>
+              <button onClick={() => { haptic('success'); onConfirm(selected); }} disabled={selected.length === 0} style={{ ...styles.button, flex: 1, background: selected.length ? '#4ECDC4' : '#ccc', color: 'white' }}>Assign ({selected.length})</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function EditChoreModal({ chore, users, onSave, onCancel, darkMode }) {
+      const styles = getStyles(darkMode);
+      const [formData, setFormData] = useState({ description: chore.description, points: chore.points || '', assignedTo: chore.assignedTo || users[0]?.name });
+      const handleSave = () => {
+        if (!formData.description.trim()) return;
+        haptic('success');
+        onSave({ ...chore, description: formData.description, points: chore.type === 'optional' ? (parseInt(formData.points) || 0) : 0, assignedTo: chore.type === 'mandatory' ? formData.assignedTo : null });
+      };
+      return (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modal}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '700' }}>Edit Chore</h3>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#999', marginBottom: '8px' }}>Description</label>
+              <input type="text" value={formData.description} onChange={(e) => setFormData(f => ({ ...f, description: e.target.value }))} style={styles.input} />
+            </div>
+            {chore.type === 'optional' && (
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#999', marginBottom: '8px' }}>Points</label>
+                <input type="number" value={formData.points} onChange={(e) => setFormData(f => ({ ...f, points: e.target.value }))} style={styles.input} />
+              </div>
+            )}
+            {chore.type === 'mandatory' && (
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#999', marginBottom: '8px' }}>Assigned To</label>
+                <select value={formData.assignedTo} onChange={(e) => setFormData(f => ({ ...f, assignedTo: e.target.value }))} style={{ ...styles.input, background: darkMode ? '#2a2a3e' : 'white' }}>
+                  {users.map(u => <option key={u.name} value={u.name}>{u.name}</option>)}
+                </select>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button onClick={onCancel} style={{ ...styles.button, flex: 1, background: darkMode ? '#333' : '#f0f0f0', color: darkMode ? '#ccc' : '#666' }}>Cancel</button>
+              <button onClick={handleSave} style={{ ...styles.button, flex: 1, background: '#4ECDC4', color: 'white' }}>Save</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function CustomizeKidsModal({ users, onSave, onCancel, darkMode }) {
+      const styles = getStyles(darkMode);
+      const [editingUsers, setEditingUsers] = useState(users.map(u => ({ ...u })));
+      const [activeKid, setActiveKid] = useState(0);
+      const updateUser = (index, field, value) => setEditingUsers(prev => prev.map((u, i) => i === index ? { ...u, [field]: value } : u));
+      return (
+        <div style={styles.modalOverlay}>
+          <div style={{ ...styles.modal, maxWidth: '400px' }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '700' }}>Customize Kids</h3>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto' }}>
+              {editingUsers.map((user, i) => (
+                <button key={i} onClick={() => setActiveKid(i)} style={{ ...styles.button, padding: '8px 16px', background: activeKid === i ? user.color : (darkMode ? '#333' : '#f0f0f0'), color: activeKid === i ? 'white' : (darkMode ? '#ccc' : '#666'), fontSize: '14px', whiteSpace: 'nowrap' }}>{user.emoji} {user.name}</button>
+              ))}
+            </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#999', marginBottom: '8px' }}>Name</label>
+              <input type="text" value={editingUsers[activeKid].name} onChange={(e) => updateUser(activeKid, 'name', e.target.value)} style={styles.input} />
+            </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#999', marginBottom: '8px' }}>Avatar</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {EMOJI_OPTIONS.map(emoji => (
+                  <button key={emoji} onClick={() => { haptic('light'); updateUser(activeKid, 'emoji', emoji); }} style={{ width: '44px', height: '44px', fontSize: '24px', border: editingUsers[activeKid].emoji === emoji ? `3px solid ${editingUsers[activeKid].color}` : (darkMode ? '2px solid #333' : '2px solid #eee'), borderRadius: '10px', background: darkMode ? '#2a2a3e' : 'white', cursor: 'pointer' }}>{emoji}</button>
+                ))}
+              </div>
+            </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#999', marginBottom: '8px' }}>Color</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {COLOR_OPTIONS.map(color => (
+                  <button key={color} onClick={() => { haptic('light'); updateUser(activeKid, 'color', color); }} style={{ width: '44px', height: '44px', background: color, border: editingUsers[activeKid].color === color ? '3px solid white' : 'none', borderRadius: '10px', cursor: 'pointer', boxShadow: editingUsers[activeKid].color === color ? `0 0 0 3px ${color}` : 'none' }} />
+                ))}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button onClick={onCancel} style={{ ...styles.button, flex: 1, background: darkMode ? '#333' : '#f0f0f0', color: darkMode ? '#ccc' : '#666' }}>Cancel</button>
+              <button onClick={() => { haptic('success'); onSave(editingUsers); }} style={{ ...styles.button, flex: 1, background: '#4ECDC4', color: 'white' }}>Save</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function UndoToast({ completion, onUndo, onDismiss, darkMode }) {
+      useEffect(() => { const timer = setTimeout(onDismiss, 5000); return () => clearTimeout(timer); }, [onDismiss]);
+      return (
+        <div style={{ position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)', background: darkMode ? '#333' : '#2C3E50', color: 'white', padding: '12px 20px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', zIndex: 999 }}>
+          <span style={{ fontSize: '14px' }}>Completed: {completion.description}</span>
+          <button onClick={() => { haptic('medium'); onUndo(); }} style={{ background: '#4ECDC4', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontWeight: '600', cursor: 'pointer' }}>Undo</button>
+        </div>
+      );
+    }
+
+    function Scoreboard({ completions, users, weekOffset = 0, onWeekChange, darkMode }) {
+      const styles = getStyles(darkMode);
+      const baseDate = new Date();
+      baseDate.setDate(baseDate.getDate() + (weekOffset * 7));
+      const { start, end } = getWeekBounds(baseDate);
+      const weeklyScores = useMemo(() => {
+        const scores = {};
+        users.forEach(u => scores[u.name] = 0);
+        completions.filter(c => { const d = new Date(c.completedAt); return d >= start && d <= end; }).forEach(c => { if (scores.hasOwnProperty(c.completedBy)) scores[c.completedBy] += c.points || 0; });
+        return users.map(u => ({ ...u, points: scores[u.name] || 0 })).sort((a, b) => b.points - a.points);
+      }, [completions, users, start, end]);
+      const isCurrentWeek = weekOffset === 0;
+      return (
+        <div style={styles.card}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <button onClick={() => onWeekChange(weekOffset - 1)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', padding: '4px' }}>←</button>
+            <div style={{ textAlign: 'center' }}>
+              <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '700' }}>🏆 {isCurrentWeek ? "This Week" : weekOffset === -1 ? "Last Week" : `${Math.abs(weekOffset)} weeks ago`}</h2>
+              <span style={{ fontSize: '12px', color: '#999' }}>{formatDateShort(start)} - {formatDateShort(end)}</span>
+            </div>
+            <button onClick={() => onWeekChange(weekOffset + 1)} disabled={isCurrentWeek} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: isCurrentWeek ? 'default' : 'pointer', padding: '4px', opacity: isCurrentWeek ? 0.3 : 1 }}>→</button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+            {weeklyScores.map((s, i) => (
+              <div key={s.name} style={{ background: `${s.color}22`, border: `2px solid ${s.color}44`, borderRadius: '12px', padding: '12px 8px', textAlign: 'center' }}>
+                <div style={{ fontSize: '20px' }}>{i === 0 && s.points > 0 ? '👑' : ''}{s.emoji}</div>
+                <div style={{ fontSize: '12px', fontWeight: '600', marginTop: '4px' }}>{s.name}</div>
+                <div style={{ fontSize: '24px', fontWeight: '700' }}>{s.points}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    function ChoreCard({ chore, currentUser, users, onComplete, onEdit, isAdmin, darkMode }) {
+      const styles = getStyles(darkMode);
+      const [showPicker, setShowPicker] = useState(false);
+      const canComplete = isAdmin || chore.type === 'optional' || chore.assignedTo === currentUser;
+      const isMandatory = chore.type === 'mandatory';
+      const user = users.find(u => u.name === chore.assignedTo);
+      const handleCompleteClick = () => { haptic('light'); if (isAdmin) setShowPicker(true); else onComplete(chore, currentUser); };
+      const handlePickerSelect = (selectedUser) => { setShowPicker(false); onComplete(chore, selectedUser === 'parent' ? null : selectedUser); };
+      return (
+        <div style={{ ...styles.card, borderLeft: `4px solid ${isMandatory ? '#FF6B6B' : '#4ECDC4'}`, marginBottom: '12px' }}>
+          {showPicker && <UserPickerModal chore={chore} users={users} onSelect={handlePickerSelect} onCancel={() => setShowPicker(false)} darkMode={darkMode} />}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                <span style={{ ...styles.tag, background: isMandatory ? '#FF6B6B20' : '#4ECDC420', color: isMandatory ? '#FF6B6B' : '#4ECDC4' }}>{isMandatory ? '📌 Required' : '⭐ Optional'}</span>
+                {isMandatory && user && <span style={{ ...styles.tag, background: `${user.color}22`, color: user.color }}>{user.emoji} {user.name}</span>}
+              </div>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>{chore.description}</h3>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+              {chore.points > 0 && <div><span style={{ fontSize: '24px', fontWeight: '700', color: '#FFE66D' }}>{chore.points}</span><span style={{ fontSize: '12px', color: '#999', marginLeft: '4px' }}>pts</span></div>}
+              {isAdmin && <button onClick={() => onEdit(chore)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', padding: '4px' }}>✏️</button>}
+            </div>
+          </div>
+          {canComplete ? (
+            <button onClick={handleCompleteClick} style={{ ...styles.button, width: '100%', marginTop: '12px', background: isMandatory ? '#FF6B6B15' : '#4ECDC415', color: isMandatory ? '#FF6B6B' : '#4ECDC4' }}>✓ Mark Complete</button>
+          ) : (
+            <div style={{ marginTop: '12px', padding: '10px', background: darkMode ? '#2a2a3e' : '#f5f5f5', borderRadius: '8px', textAlign: 'center', color: '#999', fontSize: '14px' }}>Assigned to {chore.assignedTo}</div>
+          )}
+        </div>
+      );
+    }
+
+    function FilterBar({ filter, onFilterChange, users, darkMode }) {
+      const styles = getStyles(darkMode);
+      return (
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '4px' }}>
+          <button onClick={() => onFilterChange('all')} style={{ ...styles.button, padding: '8px 16px', fontSize: '13px', background: filter === 'all' ? (darkMode ? '#4ECDC4' : '#2C3E50') : (darkMode ? '#333' : '#f0f0f0'), color: filter === 'all' ? 'white' : (darkMode ? '#ccc' : '#666'), whiteSpace: 'nowrap' }}>All</button>
+          {users.map(user => (
+            <button key={user.name} onClick={() => onFilterChange(user.name)} style={{ ...styles.button, padding: '8px 16px', fontSize: '13px', background: filter === user.name ? user.color : (darkMode ? '#333' : '#f0f0f0'), color: filter === user.name ? 'white' : (darkMode ? '#ccc' : '#666'), whiteSpace: 'nowrap' }}>{user.emoji} {user.name}</button>
+          ))}
+        </div>
+      );
+    }
+
+    function ChoreView({ currentUser, isAdmin, chores, completions, users, onComplete, onEdit, onNavigate, onLogout, darkMode, weekOffset, onWeekChange }) {
+      const styles = getStyles(darkMode);
+      const [filter, setFilter] = useState('all');
+      const activeChores = chores.filter(c => c.status === 'active');
+      const filteredChores = activeChores.filter(c => { if (filter === 'all') return true; if (c.type === 'optional') return true; return c.assignedTo === filter; });
+      const mandatoryChores = filteredChores.filter(c => c.type === 'mandatory');
+      const optionalChores = filteredChores.filter(c => c.type === 'optional');
+      return (
+        <div style={{ ...styles.container, padding: '16px', paddingBottom: '100px' }}>
+          <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <div>
+              <h1 style={{ ...styles.title, fontSize: '22px' }}>{isAdmin ? '⚙️ Admin View' : `Hi, ${currentUser}!`}</h1>
+              <p style={styles.subtitle}>{isAdmin ? 'Manage chores below' : 'Complete chores to earn points'}</p>
+            </div>
+            <button onClick={onLogout} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: '14px' }}>← Switch</button>
+          </header>
+          <Scoreboard completions={completions} users={users} weekOffset={weekOffset} onWeekChange={onWeekChange} darkMode={darkMode} />
+          <FilterBar filter={filter} onFilterChange={setFilter} users={users} darkMode={darkMode} />
+          {mandatoryChores.length > 0 && (
+            <section style={{ marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}><span style={{ color: '#FF6B6B' }}>📌</span> Required Chores</h2>
+              {mandatoryChores.map(chore => <ChoreCard key={chore.id} chore={chore} currentUser={currentUser} users={users} isAdmin={isAdmin} onComplete={onComplete} onEdit={onEdit} darkMode={darkMode} />)}
+            </section>
+          )}
+          {optionalChores.length > 0 && (
+            <section style={{ marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}><span style={{ color: '#4ECDC4' }}>⭐</span> Optional Chores</h2>
+              {optionalChores.map(chore => <ChoreCard key={chore.id} chore={chore} currentUser={currentUser} users={users} isAdmin={isAdmin} onComplete={onComplete} onEdit={onEdit} darkMode={darkMode} />)}
+            </section>
+          )}
+          {filteredChores.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎉</div>
+              <h3 style={{ fontSize: '20px', fontWeight: '700', margin: '0 0 8px 0' }}>All done!</h3>
+              <p style={{ color: '#999', margin: 0 }}>No chores right now. Enjoy!</p>
+            </div>
+          )}
+          <nav style={styles.nav}>
+            <button style={{ ...styles.navBtn, color: '#45B7D1' }}><span style={{ fontSize: '20px' }}>📋</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Chores</span></button>
+            <button onClick={() => onNavigate('history')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>📊</span><span style={{ fontSize: '11px', fontWeight: '600' }}>History</span></button>
+            {isAdmin && <button onClick={() => onNavigate('manage')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>⚙️</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Manage</span></button>}
+            {isAdmin && <button onClick={() => onNavigate('settings')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>🎨</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Settings</span></button>}
+          </nav>
+        </div>
+      );
+    }
+
+    function HistoryView({ completions, users, onNavigate, onUndo, isAdmin, darkMode }) {
+      const styles = getStyles(darkMode);
+      const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+      const filteredCompletions = useMemo(() => {
+        const selected = new Date(selectedDate);
+        return completions.filter(c => { const d = new Date(c.completedAt); return d.toDateString() === selected.toDateString(); }).sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+      }, [completions, selectedDate]);
+      const getUser = (name) => users.find(u => u.name === name) || { color: '#999', emoji: '👤' };
+      return (
+        <div style={{ ...styles.container, padding: '16px', paddingBottom: '100px' }}>
+          <header style={{ marginBottom: '20px' }}><h1 style={{ ...styles.title, fontSize: '22px' }}>📊 Completed Chores</h1><p style={styles.subtitle}>See what's been accomplished</p></header>
+          <div style={{ ...styles.card, marginBottom: '20px' }}><label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#999', marginBottom: '8px' }}>Select Date</label><input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} style={styles.input} /></div>
+          {filteredCompletions.length > 0 ? (
+            <div>{filteredCompletions.map((c) => { const user = getUser(c.completedBy); return (
+              <div key={c.id} style={{ ...styles.card, borderLeft: `4px solid ${user.color}`, marginBottom: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1 }}><div style={{ fontWeight: '600', marginBottom: '4px' }}>{c.description}</div><div style={{ fontSize: '13px', color: '#999' }}>{user.emoji} <span style={{ fontWeight: '600' }}>{c.completedBy}</span><span style={{ margin: '0 8px' }}>•</span>{new Date(c.completedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</div></div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>{c.points > 0 && <div style={{ fontSize: '20px', fontWeight: '700', color: '#FFE66D' }}>+{c.points}</div>}{isAdmin && <button onClick={() => onUndo(c)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#999' }} title="Undo">↩️</button>}</div>
+                </div>
+              </div>
+            ); })}</div>
+          ) : (<div style={{ textAlign: 'center', padding: '60px 20px' }}><div style={{ fontSize: '40px', marginBottom: '12px' }}>📭</div><p style={{ color: '#999', margin: 0 }}>No chores completed on this day</p></div>)}
+          <nav style={styles.nav}>
+            <button onClick={() => onNavigate('chores')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>📋</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Chores</span></button>
+            <button style={{ ...styles.navBtn, color: '#45B7D1' }}><span style={{ fontSize: '20px' }}>📊</span><span style={{ fontSize: '11px', fontWeight: '600' }}>History</span></button>
+            {isAdmin && <button onClick={() => onNavigate('manage')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>⚙️</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Manage</span></button>}
+            {isAdmin && <button onClick={() => onNavigate('settings')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>🎨</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Settings</span></button>}
+          </nav>
+        </div>
+      );
+    }
+
+    function SettingsView({ users, onSaveUsers, darkMode, onToggleDarkMode, onNavigate }) {
+      const styles = getStyles(darkMode);
+      const [showCustomize, setShowCustomize] = useState(false);
+      return (
+        <div style={{ ...styles.container, padding: '16px', paddingBottom: '100px' }}>
+          <header style={{ marginBottom: '20px' }}><h1 style={{ ...styles.title, fontSize: '22px' }}>🎨 Settings</h1><p style={styles.subtitle}>Customize the app</p></header>
+          {showCustomize && <CustomizeKidsModal users={users} onSave={(newUsers) => { onSaveUsers(newUsers); setShowCustomize(false); }} onCancel={() => setShowCustomize(false)} darkMode={darkMode} />}
+          <div style={styles.card}><h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600' }}>Appearance</h3><button onClick={() => { haptic('medium'); onToggleDarkMode(); }} style={{ ...styles.button, width: '100%', background: darkMode ? '#4ECDC4' : '#2C3E50', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>{darkMode ? '☀️ Switch to Light Mode' : '🌙 Switch to Dark Mode'}</button></div>
+          <div style={styles.card}><h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600' }}>Kids</h3><div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>{users.map(user => (<div key={user.name} style={{ background: `${user.color}22`, border: `2px solid ${user.color}`, borderRadius: '12px', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}><span>{user.emoji}</span><span style={{ fontWeight: '600' }}>{user.name}</span></div>))}</div><button onClick={() => setShowCustomize(true)} style={{ ...styles.button, width: '100%', background: darkMode ? '#333' : '#f0f0f0', color: darkMode ? '#ccc' : '#666' }}>✏️ Customize Kids</button></div>
+          <nav style={styles.nav}>
+            <button onClick={() => onNavigate('chores')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>📋</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Chores</span></button>
+            <button onClick={() => onNavigate('history')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>📊</span><span style={{ fontSize: '11px', fontWeight: '600' }}>History</span></button>
+            <button onClick={() => onNavigate('manage')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>⚙️</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Manage</span></button>
+            <button style={{ ...styles.navBtn, color: '#45B7D1' }}><span style={{ fontSize: '20px' }}>🎨</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Settings</span></button>
+          </nav>
+        </div>
+      );
+    }
+
+    function ManageView({ chores, users, onAddChore, onAddBulkChores, onDeleteChore, onNavigate, templates, onSaveTemplate, onDeleteTemplate, onUpdateTemplate, darkMode }) {
+      const styles = getStyles(darkMode);
+      const [showForm, setShowForm] = useState(false);
+      const [showTemplates, setShowTemplates] = useState(false);
+      const [showMultiPicker, setShowMultiPicker] = useState(false);
+      const [editingTemplateId, setEditingTemplateId] = useState(null);
+      const [deleteConfirm, setDeleteConfirm] = useState(null);
+      const [formData, setFormData] = useState({ type: 'mandatory', description: '', points: '', assignedTo: users[0]?.name, saveAsTemplate: false });
+      const activeChores = chores.filter(c => c.status === 'active');
+      const resetForm = () => { setFormData({ type: 'mandatory', description: '', points: '', assignedTo: users[0]?.name, saveAsTemplate: false }); setEditingTemplateId(null); };
+      const handleDeleteConfirm = () => { haptic('medium'); if (deleteConfirm.type === 'chore') onDeleteChore(deleteConfirm.id); else if (deleteConfirm.type === 'template') onDeleteTemplate(deleteConfirm.id); setDeleteConfirm(null); };
+      const loadTemplate = (template) => { setFormData({ type: template.type, description: template.description, points: template.points || '', assignedTo: template.assignedTo || users[0]?.name, saveAsTemplate: false }); setEditingTemplateId(template.id); setShowForm(true); setShowTemplates(false); };
+      const handleSubmit = () => { if (!formData.description.trim()) return; haptic('success'); const choreData = { type: formData.type, description: formData.description, points: formData.type === 'optional' ? (parseInt(formData.points) || 0) : 0, assignedTo: formData.type === 'optional' ? null : formData.assignedTo }; onAddChore(choreData); if (formData.saveAsTemplate) { if (editingTemplateId) onUpdateTemplate(editingTemplateId, choreData); else onSaveTemplate(choreData); } resetForm(); setShowForm(false); };
+      const handleBulkAssign = (selectedUsers) => { if (!formData.description.trim() || selectedUsers.length === 0) return; haptic('success'); const choresData = selectedUsers.map(userName => ({ type: 'mandatory', description: formData.description, points: 0, assignedTo: userName })); onAddBulkChores(choresData); if (formData.saveAsTemplate) onSaveTemplate({ type: 'mandatory', description: formData.description, points: 0, assignedTo: null }); resetForm(); setShowForm(false); setShowMultiPicker(false); };
+      const handleUpdateTemplateOnly = () => { if (!editingTemplateId || !formData.description.trim()) return; haptic('medium'); onUpdateTemplate(editingTemplateId, { type: formData.type, description: formData.description, points: formData.type === 'optional' ? (parseInt(formData.points) || 0) : 0, assignedTo: formData.type === 'optional' ? null : formData.assignedTo }); resetForm(); setShowForm(false); };
+      const getUser = (name) => users.find(u => u.name === name);
+      return (
+        <div style={{ ...styles.container, padding: '16px', paddingBottom: '100px' }}>
+          <header style={{ marginBottom: '20px' }}><h1 style={{ ...styles.title, fontSize: '22px' }}>⚙️ Manage Chores</h1><p style={styles.subtitle}>Add, edit, or remove chores</p></header>
+          {deleteConfirm && <ConfirmModal message={deleteConfirm.type === 'chore' ? 'Delete this chore?' : 'Delete this saved chore?'} onConfirm={handleDeleteConfirm} onCancel={() => setDeleteConfirm(null)} darkMode={darkMode} />}
+          {showMultiPicker && <MultiUserPickerModal users={users} onConfirm={handleBulkAssign} onCancel={() => setShowMultiPicker(false)} darkMode={darkMode} />}
+          {!showForm && !showTemplates && (
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+              <button onClick={() => { resetForm(); setShowForm(true); }} style={{ ...styles.button, flex: 1, background: '#45B7D1', color: 'white', padding: '16px' }}>+ Add New Chore</button>
+              {templates.length > 0 && <button onClick={() => setShowTemplates(true)} style={{ ...styles.button, background: darkMode ? '#333' : '#2C3E50', color: 'white', padding: '16px' }}>📁 Saved ({templates.length})</button>}
+            </div>
+          )}
+          {showTemplates && (
+            <div style={{ ...styles.card, marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}><h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700' }}>📁 Saved Chores</h3><button onClick={() => setShowTemplates(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: darkMode ? '#ccc' : '#666' }}>✕</button></div>
+              <p style={{ fontSize: '13px', color: '#999', marginBottom: '16px' }}>Tap to load, then edit and add as new chore</p>
+              {templates.map(template => (
+                <div key={template.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: darkMode ? '#2a2a3e' : '#f8f8f8', borderRadius: '10px', marginBottom: '8px', borderLeft: `4px solid ${template.type === 'mandatory' ? '#FF6B6B' : '#4ECDC4'}` }}>
+                  <button onClick={() => loadTemplate(template)} style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', flex: 1, color: darkMode ? '#e0e0e0' : '#2C3E50' }}><div style={{ fontWeight: '600' }}>{template.description}</div><div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>{template.type === 'mandatory' ? '📌 Required' : `⭐ ${template.points || 0} pts`}</div></button>
+                  <button onClick={() => setDeleteConfirm({ type: 'template', id: template.id })} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', padding: '8px' }}>🗑️</button>
+                </div>
+              ))}
+            </div>
+          )}
+          {showForm && (
+            <div style={{ ...styles.card, marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}><h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700' }}>{editingTemplateId ? 'Edit & Add Chore' : 'New Chore'}</h3><button type="button" onClick={() => { setShowForm(false); resetForm(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: darkMode ? '#ccc' : '#666' }}>✕</button></div>
+              <div style={{ marginBottom: '16px' }}><label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#999', marginBottom: '8px' }}>Type</label><div style={{ display: 'flex', gap: '12px' }}><button type="button" onClick={() => setFormData(f => ({ ...f, type: 'mandatory', points: '' }))} style={{ ...styles.button, flex: 1, background: formData.type === 'mandatory' ? '#FF6B6B' : (darkMode ? '#333' : '#FF6B6B20'), color: formData.type === 'mandatory' ? 'white' : '#FF6B6B' }}>📌 Required</button><button type="button" onClick={() => setFormData(f => ({ ...f, type: 'optional' }))} style={{ ...styles.button, flex: 1, background: formData.type === 'optional' ? '#4ECDC4' : (darkMode ? '#333' : '#4ECDC420'), color: formData.type === 'optional' ? 'white' : '#4ECDC4' }}>⭐ Optional</button></div></div>
+              <div style={{ marginBottom: '16px' }}><label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#999', marginBottom: '8px' }}>Description</label><input type="text" value={formData.description} onChange={(e) => setFormData(f => ({ ...f, description: e.target.value }))} placeholder="e.g., Take out the trash" style={styles.input} autoFocus /></div>
+              {formData.type === 'optional' && <div style={{ marginBottom: '16px' }}><label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#999', marginBottom: '8px' }}>Points</label><input type="number" value={formData.points} onChange={(e) => setFormData(f => ({ ...f, points: e.target.value }))} placeholder="0" style={styles.input} /></div>}
+              {formData.type === 'mandatory' && <div style={{ marginBottom: '16px' }}><label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#999', marginBottom: '8px' }}>Assign To</label><select value={formData.assignedTo} onChange={(e) => setFormData(f => ({ ...f, assignedTo: e.target.value }))} style={{ ...styles.input, background: darkMode ? '#2a2a3e' : 'white' }}>{users.map(u => <option key={u.name} value={u.name}>{u.name}</option>)}</select></div>}
+              <div style={{ marginBottom: '16px' }}><label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}><input type="checkbox" checked={formData.saveAsTemplate} onChange={(e) => setFormData(f => ({ ...f, saveAsTemplate: e.target.checked }))} style={{ width: '18px', height: '18px' }} /><span style={{ fontSize: '14px' }}>{editingTemplateId ? 'Update saved chore' : 'Save as frequent chore'}</span></label></div>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                <button type="button" onClick={() => { setShowForm(false); resetForm(); }} style={{ ...styles.button, flex: '1 1 100px', background: darkMode ? '#333' : '#f0f0f0', color: darkMode ? '#ccc' : '#666' }}>Cancel</button>
+                {editingTemplateId && <button type="button" onClick={handleUpdateTemplateOnly} style={{ ...styles.button, background: '#9B59B6', color: 'white', fontSize: '14px', padding: '12px 16px' }}>Save Only</button>}
+                {formData.type === 'mandatory' && <button type="button" onClick={() => setShowMultiPicker(true)} disabled={!formData.description.trim()} style={{ ...styles.button, background: '#FFE66D', color: '#2C3E50', fontSize: '14px', padding: '12px 16px' }}>👥 Multiple</button>}
+                <button type="button" onClick={handleSubmit} style={{ ...styles.button, flex: '1 1 100px', background: darkMode ? '#4ECDC4' : '#2C3E50', color: 'white' }}>Add Chore</button>
+              </div>
+            </div>
+          )}
+          <section>
+            <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}>Active Chores ({activeChores.length})</h2>
+            {activeChores.length > 0 ? activeChores.map(chore => { const user = getUser(chore.assignedTo); return (
+              <div key={chore.id} style={{ ...styles.card, borderLeft: `4px solid ${chore.type === 'mandatory' ? '#FF6B6B' : '#4ECDC4'}`, marginBottom: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div><div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}><span style={{ ...styles.tag, background: chore.type === 'mandatory' ? '#FF6B6B20' : '#4ECDC420', color: chore.type === 'mandatory' ? '#FF6B6B' : '#4ECDC4' }}>{chore.type === 'mandatory' ? '📌 Required' : '⭐ Optional'}</span>{user && <span style={{ ...styles.tag, background: `${user.color}22`, color: user.color }}>{user.emoji} {user.name}</span>}</div><div style={{ fontWeight: '600' }}>{chore.description}</div>{chore.points > 0 && <div style={{ fontSize: '13px', color: '#999', marginTop: '4px' }}>{chore.points} points</div>}</div>
+                  <button onClick={() => setDeleteConfirm({ type: 'chore', id: chore.id })} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '8px' }}>🗑️</button>
+                </div>
+              </div>
+            ); }) : <div style={{ textAlign: 'center', padding: '40px 20px', color: '#999' }}>No active chores. Add one above!</div>}
+          </section>
+          <nav style={styles.nav}>
+            <button onClick={() => onNavigate('chores')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>📋</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Chores</span></button>
+            <button onClick={() => onNavigate('history')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>📊</span><span style={{ fontSize: '11px', fontWeight: '600' }}>History</span></button>
+            <button style={{ ...styles.navBtn, color: '#45B7D1' }}><span style={{ fontSize: '20px' }}>⚙️</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Manage</span></button>
+            <button onClick={() => onNavigate('settings')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>🎨</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Settings</span></button>
+          </nav>
+        </div>
+      );
+    }
+
+    function App() {
+      const [currentUser, setCurrentUser] = useState(null);
+      const [isAdmin, setIsAdmin] = useState(false);
+      const [showPinEntry, setShowPinEntry] = useState(false);
+      const [view, setView] = useState('chores');
+      const [weekOffset, setWeekOffset] = useState(0);
+      const [editingChore, setEditingChore] = useState(null);
+      const [undoCompletion, setUndoCompletion] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [chores, setChores] = useState([]);
+      const [completions, setCompletions] = useState([]);
+      const [templates, setTemplates] = useState([]);
+      const [users, setUsers] = useState(DEFAULT_USERS);
+      const [darkMode, setDarkMode] = useState(() => storage.get('darkMode', false));
+
+      useEffect(() => {
+        const loadData = async () => {
+          setLoading(true);
+          const data = await api.getAll();
+          console.log('Loaded data:', data);
+          if (data) {
+            if (data.chores && Array.isArray(data.chores)) setChores(data.chores);
+            if (data.completions && Array.isArray(data.completions)) setCompletions(data.completions);
+            if (data.templates && Array.isArray(data.templates)) setTemplates(data.templates);
+            if (data.users && Array.isArray(data.users) && data.users.length > 0) setUsers(data.users);
+          }
+          setLoading(false);
+        };
+        loadData();
+      }, []);
+
+      useEffect(() => { storage.set('darkMode', darkMode); }, [darkMode]);
+
+      const handleUserSelect = (user) => { if (user === 'admin') setShowPinEntry(true); else { setCurrentUser(user); setIsAdmin(false); } };
+      const handlePinSuccess = () => { setShowPinEntry(false); setCurrentUser('Admin'); setIsAdmin(true); };
+      const handleLogout = () => { setCurrentUser(null); setIsAdmin(false); setView('chores'); setWeekOffset(0); };
+      
+      const handleComplete = async (chore, completedBy) => {
+        const completion = { id: generateId(), choreId: chore.id, description: chore.description, points: completedBy === null ? 0 : (chore.points || 0), completedBy: completedBy === null ? 'Parent' : completedBy, completedAt: new Date().toISOString() };
+        const updatedChore = { ...chore, status: 'completed' };
+        setCompletions(prev => [...prev, completion]);
+        setChores(prev => prev.map(c => c.id === chore.id ? updatedChore : c));
+        setUndoCompletion({ completion, chore });
+        haptic('success');
+        await api.addCompletion(completion);
+        await api.updateChore(updatedChore);
+      };
+
+      const handleUndo = async (completion) => {
+        const originalChore = chores.find(c => c.id === completion.choreId);
+        if (originalChore) {
+          const restoredChore = { ...originalChore, status: 'active' };
+          setChores(prev => prev.map(c => c.id === completion.choreId ? restoredChore : c));
+          await api.updateChore(restoredChore);
+        }
+        setCompletions(prev => prev.filter(c => c.id !== completion.id));
+        setUndoCompletion(null);
+        haptic('medium');
+      };
+
+      const handleUndoFromToast = async () => { 
+        if (undoCompletion) { 
+          const restoredChore = { ...undoCompletion.chore, status: 'active' };
+          setChores(prev => prev.map(c => c.id === undoCompletion.chore.id ? restoredChore : c)); 
+          setCompletions(prev => prev.filter(c => c.id !== undoCompletion.completion.id)); 
+          await api.updateChore(restoredChore);
+          setUndoCompletion(null); 
+          haptic('medium'); 
+        } 
+      };
+      
+      const handleEditChore = (chore) => setEditingChore(chore);
+      
+      const handleSaveEdit = async (updatedChore) => { 
+        setChores(prev => prev.map(c => c.id === updatedChore.id ? updatedChore : c)); 
+        setEditingChore(null); 
+        haptic('success');
+        await api.updateChore(updatedChore);
+      };
+      
+      const handleAddChore = async (choreData) => {
+        const newChore = { id: generateId(), ...choreData, status: 'active', createdAt: new Date().toISOString() };
+        setChores(prev => [...prev, newChore]);
+        await api.addChore(newChore);
+      };
+      
+      const handleAddBulkChores = async (choresData) => {
+        const newChores = choresData.map(data => ({ id: generateId(), ...data, status: 'active', createdAt: new Date().toISOString() }));
+        setChores(prev => [...prev, ...newChores]);
+        await api.addChores(newChores);
+      };
+      
+      const handleDeleteChore = async (choreId) => {
+        setChores(prev => prev.filter(c => c.id !== choreId));
+        await api.deleteChore(choreId);
+      };
+      
+      const handleSaveTemplate = async (templateData) => {
+        const newTemplate = { id: generateId(), ...templateData };
+        setTemplates(prev => [...prev, newTemplate]);
+        await api.addTemplate(newTemplate);
+      };
+      
+      const handleDeleteTemplate = async (templateId) => {
+        setTemplates(prev => prev.filter(t => t.id !== templateId));
+        await api.deleteTemplate(templateId);
+      };
+      
+      const handleUpdateTemplate = async (templateId, templateData) => {
+        const updatedTemplate = { id: templateId, ...templateData };
+        setTemplates(prev => prev.map(t => t.id === templateId ? updatedTemplate : t));
+        await api.updateTemplate(updatedTemplate);
+      };
+
+      const handleSaveUsers = async (newUsers) => {
+        setUsers(newUsers);
+        await api.updateUsers(newUsers);
+      };
+
+      const styles = getStyles(darkMode);
+
+      if (loading) {
+        return (
+          <div style={{ ...styles.container, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
+              <p style={{ color: darkMode ? '#888' : '#999' }}>Loading...</p>
+            </div>
+          </div>
+        );
+      }
+
+      if (!currentUser && !showPinEntry) return <UserSelect onSelect={handleUserSelect} users={users} darkMode={darkMode} />;
+      if (showPinEntry) return <PinEntry onSuccess={handlePinSuccess} onCancel={() => setShowPinEntry(false)} darkMode={darkMode} />;
+
+      return (
+        <>
+          {editingChore && <EditChoreModal chore={editingChore} users={users} onSave={handleSaveEdit} onCancel={() => setEditingChore(null)} darkMode={darkMode} />}
+          {undoCompletion && view === 'chores' && <UndoToast completion={undoCompletion.completion} onUndo={handleUndoFromToast} onDismiss={() => setUndoCompletion(null)} darkMode={darkMode} />}
+          {view === 'history' && <HistoryView completions={completions} users={users} onNavigate={setView} onUndo={handleUndo} isAdmin={isAdmin} darkMode={darkMode} />}
+          {view === 'manage' && isAdmin && <ManageView chores={chores} users={users} onAddChore={handleAddChore} onAddBulkChores={handleAddBulkChores} onDeleteChore={handleDeleteChore} onNavigate={setView} templates={templates} onSaveTemplate={handleSaveTemplate} onDeleteTemplate={handleDeleteTemplate} onUpdateTemplate={handleUpdateTemplate} darkMode={darkMode} />}
+          {view === 'settings' && isAdmin && <SettingsView users={users} onSaveUsers={handleSaveUsers} darkMode={darkMode} onToggleDarkMode={() => setDarkMode(d => !d)} onNavigate={setView} />}
+          {view === 'chores' && <ChoreView currentUser={currentUser} isAdmin={isAdmin} chores={chores} completions={completions} users={users} onComplete={handleComplete} onEdit={handleEditChore} onNavigate={setView} onLogout={handleLogout} darkMode={darkMode} weekOffset={weekOffset} onWeekChange={setWeekOffset} />}
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
