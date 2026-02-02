@@ -27,7 +27,7 @@
 
     const EMOJI_OPTIONS = ['👧', '👦', '🧒', '👶', '🧒🏻', '👧🏻', '👦🏻', '👧🏽', '👦🏽', '🧒🏽', '👧🏿', '👦🏿', '🦸', '🦹', '🧙', '🧚', '🦊', '🐱', '🐶', '🦄', '🐼', '🐨', '🦁', '🐯'];
     const COLOR_OPTIONS = ['#FF6B6B', '#45B7D1', '#9B59B6', '#4ECDC4', '#FFE66D', '#FF8C42', '#98D8AA', '#E84A5F', '#2A363B', '#F67280'];
-    const ADMIN_PIN = '1234';
+    const ADMIN_PATTERN = [2, 3, 6, 5]; // positions: 1-9 grid, top-left to bottom-right
 
     const API_URL = 'https://script.google.com/macros/s/AKfycbyyLaVKgkG5RON_hN6kgFwSNsblccHNsrLCn1vLE0vfR-MGb9TcKKrTKghO-ElleqlG/exec';
 
@@ -154,26 +154,90 @@
       );
     }
 
-    function PinEntry({ onSuccess, onCancel, darkMode }) {
+    const PATTERN_EMOJI = [
+      '🌟', '🚀', '🎮', '🎨', '🎵', '📚', '⚡', '🌈', '🔥', '🎯',
+      '🌺', '🎪', '🎸', '🏠', '🎲', '🌙', '☀️', '🍕', '🎁', '🏆',
+      '🦄', '🐶', '🐱', '🦊', '🐼', '🦁', '🐸', '🦋', '🌻', '🍎',
+      '🚗', '✈️', '🛸', '⚽', '🎾', '🏀', '🎹', '🔮', '💎', '🧩',
+      '🌴', '🍦', '🎂', '🧸', '👑', '🦖', '🐙', '🍩'
+    ];
+
+    function EmojiPattern({ onSuccess, onCancel, darkMode }) {
       const styles = getStyles(darkMode);
-      const [pin, setPin] = useState('');
+      const [taps, setTaps] = useState([]);
       const [error, setError] = useState(false);
-      const handleSubmit = () => {
-        if (pin === ADMIN_PIN) { haptic('success'); onSuccess(); }
-        else { haptic('heavy'); setError(true); setPin(''); setTimeout(() => setError(false), 1000); }
+      const [success, setSuccess] = useState(false);
+      const [gridEmoji] = useState(() => {
+        const shuffled = [...PATTERN_EMOJI].sort(() => Math.random() - 0.5);
+        return shuffled.slice(0, 9);
+      });
+
+      const handleTap = (position) => {
+        if (error || success) return;
+        haptic('light');
+        const newTaps = [...taps, position];
+        setTaps(newTaps);
+
+        if (newTaps.length === ADMIN_PATTERN.length) {
+          const isCorrect = newTaps.every((tap, i) => tap === ADMIN_PATTERN[i]);
+          if (isCorrect) {
+            setSuccess(true);
+            haptic('success');
+            setTimeout(() => onSuccess(), 400);
+          } else {
+            setError(true);
+            haptic('heavy');
+            setTimeout(() => { setError(false); setTaps([]); }, 800);
+          }
+        }
       };
-      const handleKeyDown = (e) => { if (e.key === 'Enter') handleSubmit(); };
+
+      const getCellStyle = (position) => {
+        const isSelected = taps.includes(position);
+        const selectionIndex = taps.indexOf(position);
+        return {
+          width: '70px',
+          height: '70px',
+          fontSize: '32px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: '12px',
+          cursor: 'pointer',
+          transition: 'all 0.15s ease',
+          background: error ? '#FF6B6B30' : success ? '#4ECDC430' : isSelected ? (darkMode ? '#4ECDC440' : '#45B7D130') : (darkMode ? '#2a2a3e' : '#f5f5f5'),
+          border: `2px solid ${error ? '#FF6B6B' : success ? '#4ECDC4' : isSelected ? '#45B7D1' : 'transparent'}`,
+          transform: isSelected ? 'scale(0.95)' : 'scale(1)',
+          position: 'relative',
+        };
+      };
+
       return (
         <div style={{ ...styles.container, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', position: 'relative' }}>
           <div style={{ ...styles.card, maxWidth: '320px', width: '100%' }}>
-            <h2 style={{ ...styles.title, fontSize: '20px', textAlign: 'center', marginBottom: '20px' }}>Enter Admin PIN</h2>
-            <div>
-              <input type="password" inputMode="numeric" value={pin} onChange={(e) => setPin(e.target.value)} onKeyDown={handleKeyDown} style={{ ...styles.input, textAlign: 'center', fontSize: '24px', letterSpacing: '8px', marginBottom: '16px', borderColor: error ? '#FF6B6B' : (darkMode ? '#333' : '#2C3E5020'), background: error ? '#FF6B6B20' : (darkMode ? '#2a2a3e' : 'white') }} placeholder="••••" autoFocus />
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button type="button" onClick={onCancel} style={{ ...styles.button, flex: 1, background: darkMode ? '#333' : '#f0f0f0', color: darkMode ? '#ccc' : '#666' }}>Cancel</button>
-                <button type="button" onClick={handleSubmit} style={{ ...styles.button, flex: 1, background: darkMode ? '#4ECDC4' : '#2C3E50', color: 'white' }}>Enter</button>
-              </div>
+            <h2 style={{ ...styles.title, fontSize: '20px', textAlign: 'center', marginBottom: '8px' }}>Admin Access</h2>
+            <p style={{ textAlign: 'center', color: darkMode ? '#888' : '#666', fontSize: '14px', marginBottom: '20px' }}>
+              Tap the pattern to continue
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', justifyItems: 'center', marginBottom: '16px' }}>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((position, index) => (
+                <div key={position} onClick={() => handleTap(position)} style={getCellStyle(position)}>
+                  {gridEmoji[index]}
+                </div>
+              ))}
             </div>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginBottom: '16px', minHeight: '24px' }}>
+              {ADMIN_PATTERN.map((_, i) => (
+                <div key={i} style={{
+                  width: '12px',
+                  height: '12px',
+                  borderRadius: '50%',
+                  background: taps[i] ? (error ? '#FF6B6B' : success ? '#4ECDC4' : '#45B7D1') : (darkMode ? '#333' : '#ddd'),
+                  transition: 'all 0.15s ease',
+                }} />
+              ))}
+            </div>
+            <button type="button" onClick={onCancel} style={{ ...styles.button, width: '100%', background: darkMode ? '#333' : '#f0f0f0', color: darkMode ? '#ccc' : '#666' }}>Cancel</button>
           </div>
           <div style={{ position: 'absolute', bottom: '20px', left: 0, right: 0, textAlign: 'center', color: darkMode ? '#666' : '#999', fontSize: '12px' }}>
             Do Your Chores, Bruh © 2026 Jordan Family
@@ -933,7 +997,7 @@
       }
 
       if (!currentUser && !showPinEntry) return <UserSelect onSelect={handleUserSelect} users={users} darkMode={darkMode} />;
-      if (showPinEntry) return <PinEntry onSuccess={handlePinSuccess} onCancel={() => setShowPinEntry(false)} darkMode={darkMode} />;
+      if (showPinEntry) return <EmojiPattern onSuccess={handlePinSuccess} onCancel={() => setShowPinEntry(false)} darkMode={darkMode} />;
 
       return (
         <>
