@@ -16,6 +16,23 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', system-ui, sans-serif; }
+    @keyframes choreComplete {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.02); opacity: 0.8; }
+      100% { transform: scale(0.95); opacity: 0; }
+    }
+    @keyframes checkmark {
+      0% { transform: scale(0) rotate(-45deg); opacity: 0; }
+      50% { transform: scale(1.2) rotate(0deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+    .chore-completing {
+      animation: choreComplete 0.4s ease-out forwards;
+      pointer-events: none;
+    }
+    .checkmark-animation {
+      animation: checkmark 0.3s ease-out forwards;
+    }
   </style>
 </head>
 <body>
@@ -688,7 +705,16 @@
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
             {weeklyScores.map((s, i) => (
               <div key={s.name} style={{ background: `${s.color}22`, border: `2px solid ${s.color}44`, borderRadius: '12px', padding: '12px 8px', textAlign: 'center' }}>
-                <div style={{ fontSize: '20px' }}>{i === 0 && s.points > 0 ? '👑' : ''}{s.emoji}</div>
+                <div style={{ fontSize: '20px', position: 'relative', display: 'inline-block' }}>
+                  {i === 0 && s.points > 0 && (
+                    <span style={{ position: 'absolute', top: '-2px', left: '50%', transform: 'translateX(-50%)', zIndex: 2 }}>👑</span>
+                  )}
+                  {i === 0 && s.points > 0 && (
+                    <span style={{ position: 'absolute', top: '8px', left: '50%', transform: 'translateX(-50%)', zIndex: 3, fontSize: '12px' }}>😎</span>
+                  )}
+                  <span style={{ visibility: i === 0 && s.points > 0 ? 'hidden' : 'visible' }}>{s.emoji}</span>
+                  {i === 0 && s.points > 0 && <span style={{ marginTop: '14px', display: 'block' }}>{s.emoji}</span>}
+                </div>
                 <div style={{ fontSize: '12px', fontWeight: '600', marginTop: '4px' }}>{s.name}</div>
                 <div style={{ fontSize: '24px', fontWeight: '700' }}>{s.points}</div>
               </div>
@@ -701,13 +727,25 @@
     function ChoreCard({ chore, currentUser, users, onComplete, onEdit, isAdmin, darkMode }) {
       const styles = getStyles(darkMode);
       const [showPicker, setShowPicker] = useState(false);
+      const [completing, setCompleting] = useState(false);
       const canComplete = isAdmin || chore.type === 'optional' || chore.assignedTo === currentUser;
       const isMandatory = chore.type === 'mandatory';
       const user = users.find(u => u.name === chore.assignedTo);
-      const handleCompleteClick = () => { haptic('light'); if (isAdmin) setShowPicker(true); else onComplete(chore, currentUser); };
-      const handlePickerSelect = (selectedUser) => { setShowPicker(false); onComplete(chore, selectedUser === 'parent' ? null : selectedUser); };
+      const handleCompleteClick = () => {
+        haptic('light');
+        if (isAdmin) setShowPicker(true);
+        else {
+          setCompleting(true);
+          setTimeout(() => onComplete(chore, currentUser), 350);
+        }
+      };
+      const handlePickerSelect = (selectedUser) => {
+        setShowPicker(false);
+        setCompleting(true);
+        setTimeout(() => onComplete(chore, selectedUser === 'parent' ? null : selectedUser), 350);
+      };
       return (
-        <div style={{ ...styles.card, borderLeft: `4px solid ${isMandatory ? '#FF6B6B' : '#4ECDC4'}`, marginBottom: '12px' }}>
+        <div className={completing ? 'chore-completing' : ''} style={{ ...styles.card, borderLeft: `4px solid ${isMandatory ? '#FF6B6B' : '#4ECDC4'}`, marginBottom: '12px' }}>
           {showPicker && <UserPickerModal chore={chore} users={users} onSelect={handlePickerSelect} onCancel={() => setShowPicker(false)} darkMode={darkMode} />}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
             <div style={{ flex: 1 }}>
@@ -1091,6 +1129,72 @@
       );
     }
 
+    // Error Boundary for crash recovery
+    class ErrorBoundary extends React.Component {
+      constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
+      }
+
+      static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+      }
+
+      componentDidCatch(error, errorInfo) {
+        console.error('App Error:', error, errorInfo);
+      }
+
+      render() {
+        if (this.state.hasError) {
+          const dark = localStorage.getItem('darkMode') === 'true';
+          return (
+            <div style={{
+              minHeight: '100vh',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: dark ? '#1a1a2e' : '#f5f5f5',
+              padding: '20px',
+              fontFamily: "'Segoe UI', system-ui, sans-serif"
+            }}>
+              <div style={{
+                background: dark ? '#1e1e2f' : 'white',
+                borderRadius: '20px',
+                padding: '32px',
+                maxWidth: '400px',
+                textAlign: 'center',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+              }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>😵</div>
+                <h1 style={{ fontSize: '20px', fontWeight: '700', color: dark ? '#e0e0e0' : '#2C3E50', marginBottom: '12px' }}>
+                  Oops! Something went wrong
+                </h1>
+                <p style={{ color: dark ? '#888' : '#666', marginBottom: '24px', fontSize: '14px' }}>
+                  The app encountered an unexpected error. Try refreshing the page.
+                </p>
+                <button
+                  onClick={() => window.location.reload()}
+                  style={{
+                    background: '#45B7D1',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '12px',
+                    padding: '12px 32px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Refresh Page
+                </button>
+              </div>
+            </div>
+          );
+        }
+        return this.props.children;
+      }
+    }
+
     function App() {
       const [currentUser, setCurrentUser] = useState(null);
       const [isAdmin, setIsAdmin] = useState(false);
@@ -1256,7 +1360,7 @@
       );
     }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    ReactDOM.createRoot(document.getElementById('root')).render(<ErrorBoundary><App /></ErrorBoundary>);
   </script>
 </body>
 </html>

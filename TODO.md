@@ -5,9 +5,9 @@ A list of planned features and improvements for the Chore Tracker app.
 ## High Priority
 
 ### Icon & Branding
-- [ ] **Fix favicon** - Update to use the more recent icon image
+- [x] **Fix favicon** - Update to use the more recent icon image
 - [ ] **Add iOS PNG icon** - Wire in dedicated PNG file for iOS home screen saving (user will provide)
-- [ ] **Add sunglasses emoji next to the crown emoji for rhe current week point leader. ideally put the sunglasses just below but overlapping the crown. so it looks lile they are one emoji. 
+- [x] **Add sunglasses emoji next to the crown emoji** - Sunglasses emoji overlaps below the crown for the current week point leader 
 
 ### Architecture
 - [ ] **Break app into separate pages/routes** - Enable deep linking so pull-to-refresh loads the specific view directly instead of reloading the entire app
@@ -38,7 +38,7 @@ A list of planned features and improvements for the Chore Tracker app.
 ## Low Priority
 
 ### Technical
-- [ ] **Error boundaries** - Add React error boundaries for crash recovery
+- [x] **Error boundaries** - Add React error boundaries for crash recovery
 - [ ] **Split into multiple files** - Break single-file app into modules (requires build step)
 - [ ] **Add unit tests** - Test critical functions like scoring, assignment logic
 - [ ] **Service worker** - Enable PWA features like offline caching
@@ -48,7 +48,7 @@ place for the app to live.
 
 ### Visual
 - [ ] **Custom themes** - More color scheme options beyond light/dark
-- [ ] **Animations** - Add subtle transitions when completing chores
+- [x] **Animations** - Add subtle transitions when completing chores
 - [ ] **Achievement badges** - Visual rewards for milestones
 
 ## Completed
@@ -61,3 +61,7 @@ place for the app to live.
 - [x] Dark mode support
 - [x] Multi-user chore assignment
 - [x] Template/saved chores system
+- [x] Fix favicon (already using icon.svg)
+- [x] Sunglasses emoji for weekly leader (overlapping 👑😎)
+- [x] Chore completion animations
+- [x] React error boundaries for crash recovery

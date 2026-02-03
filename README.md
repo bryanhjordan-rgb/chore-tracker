@@ -8,7 +8,7 @@ A mobile-friendly chore tracking app for families. Assign tasks, track completio
 - **Two Chore Types**
   - *Mandatory* - Assigned to specific kids, must be completed
   - *Optional* - Anyone can complete for bonus points
-- **Weekly Scoreboard** - Track points earned throughout the week with leader crown
+- **Weekly Scoreboard** - Track points earned throughout the week with leader crown and sunglasses 👑😎
 - **Batch Assignment** - Randomly assign multiple chores to kids at once
 - **Saved Chores** - Save frequently used chores as templates
 - **Admin Dashboard** - Manage chores, templates, and family members
@@ -17,6 +17,8 @@ A mobile-friendly chore tracking app for families. Assign tasks, track completio
 - **Undo Completion** - Accidentally marked done? Undo within 5 seconds
 - **History View** - See completed chores grouped by day, navigate between weeks
 - **Dark Mode** - Toggle between light and dark themes
+- **Completion Animations** - Satisfying visual feedback when marking chores done
+- **Error Recovery** - Graceful error handling with friendly recovery UI
 - **Mobile First** - Designed for phones with haptic feedback support
 - **iOS Support** - Add to home screen for app-like experience
 
