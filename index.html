@@ -12,6 +12,7 @@
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="config.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', system-ui, sans-serif; }
@@ -22,19 +23,13 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo } = React;
 
-    const DEFAULT_USERS = [
-      { name: 'Sophia', emoji: '👧', color: '#FF6B6B' },
-      { name: 'Henry', emoji: '👦', color: '#45B7D1' },
-      { name: 'Charlotte', emoji: '👧', color: '#9B59B6' },
-      { name: 'Maxwell', emoji: '🧒', color: '#4ECDC4' },
-    ];
-
-    const EMOJI_OPTIONS = ['👧', '👦', '🧒', '👶', '🧒🏻', '👧🏻', '👦🏻', '👧🏽', '👦🏽', '🧒🏽', '👧🏿', '👦🏿', '🦸', '🦹', '🧙', '🧚', '🦊', '🐱', '🐶', '🦄', '🐼', '🐨', '🦁', '🐯'];
-    const COLOR_OPTIONS = ['#FF6B6B', '#45B7D1', '#9B59B6', '#4ECDC4', '#FFE66D', '#FF8C42', '#98D8AA', '#E84A5F', '#2A363B', '#F67280'];
-    const ADMIN_PATTERN = [2, 3, 6, 5]; // positions: 1-9 grid, top-left to bottom-right
-
-    const SUPABASE_URL = 'https://zkkudyxpupkyfmbifqyq.supabase.co/rest/v1';
-    const SUPABASE_KEY = 'sb_publishable__ibwbjPWSBxPG6oOgkglJQ_SsxkFTBX';
+    // Load configuration from external config.js
+    const DEFAULT_USERS = CONFIG.defaultUsers;
+    const EMOJI_OPTIONS = CONFIG.emojiOptions;
+    const COLOR_OPTIONS = CONFIG.colorOptions;
+    const ADMIN_PATTERN = CONFIG.adminPattern;
+    const SUPABASE_URL = CONFIG.supabase.url;
+    const SUPABASE_KEY = CONFIG.supabase.key;
     const supabaseHeaders = {
       'apikey': SUPABASE_KEY,
       'Authorization': `Bearer ${SUPABASE_KEY}`,
