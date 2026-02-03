@@ -146,9 +146,17 @@
       },
       async updateUsers(users) {
         try {
-          await fetch(`${SUPABASE_URL}/users`, { method: 'DELETE', headers: supabaseHeaders });
+          const deleteRes = await fetch(`${SUPABASE_URL}/users?name=not.is.null`, { method: 'DELETE', headers: supabaseHeaders });
+          if (!deleteRes.ok) {
+            console.error('API updateUsers delete failed:', deleteRes.status, await deleteRes.text());
+            return false;
+          }
           if (users.length > 0) {
-            await fetch(`${SUPABASE_URL}/users`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify(users.map(toSnakeCase)) });
+            const insertRes = await fetch(`${SUPABASE_URL}/users`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify(users.map(toSnakeCase)) });
+            if (!insertRes.ok) {
+              console.error('API updateUsers insert failed:', insertRes.status, await insertRes.text());
+              return false;
+            }
           }
           return true;
         } catch (error) { console.error('API updateUsers error:', error); return false; }
