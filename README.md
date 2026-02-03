@@ -16,6 +16,7 @@ A mobile-friendly chore tracking app for families. Assign tasks, track completio
 - **Profile Customization** - Kids can customize their own emoji and color
 - **Undo Completion** - Accidentally marked done? Undo within 5 seconds
 - **History View** - See completed chores grouped by day, navigate between weeks
+- **Deep Linking** - Bookmark and share direct links to views (`#/chores`, `#/history`, etc.)
 - **Dark Mode** - Toggle between light and dark themes
 - **Completion Animations** - Satisfying visual feedback when marking chores done
 - **Error Recovery** - Graceful error handling with friendly recovery UI

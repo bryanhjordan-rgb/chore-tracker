@@ -16,7 +16,7 @@
 
 ```
 chore-tracker/
-├── index.html        # Entire application (~1370 lines)
+├── index.html        # Entire application (~1450 lines)
 ├── config.example.js # Configuration template (copy to config.js)
 ├── config.js         # Local configuration (gitignored, user-created)
 ├── icon.svg          # App icon (favicon + iOS home screen)
@@ -256,11 +256,28 @@ Admin can customize all kids via Settings -> Customize Kids:
 | emoji | text | User emoji avatar |
 | color | text | User theme color (hex) |
 
+## Hash-Based Routing
+
+The app uses hash-based routing for deep linking and bookmark support:
+
+```
+#/chores   - Main chore list (default)
+#/history  - Completion history
+#/manage   - Admin chore management
+#/settings - Admin settings
+```
+
+### Routing Behavior
+- URL hash updates when navigating between views
+- Refreshing the page restores the current view
+- Browser back/forward buttons work as expected
+- Admin views (`#/manage`, `#/settings`) require re-authentication on page refresh
+- Non-authenticated users navigating to admin hashes are redirected to `#/chores`
+
 ## Limitations
 
 - No offline support (requires internet for API)
 - Single-file architecture limits code organization
-- No deep linking (pull-to-refresh reloads entire app)
 - No push notifications
 
 ## Commit Guidelines
