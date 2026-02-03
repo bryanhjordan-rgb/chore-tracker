@@ -226,8 +226,19 @@
       );
     }
 
-    function UserSelect({ onSelect, users, darkMode }) {
+    function UserSelect({ onSelect, users, completions, darkMode }) {
       const styles = getStyles(darkMode);
+      const { start, end } = getWeekBounds(new Date());
+      const weeklyScores = useMemo(() => {
+        const scores = {};
+        users.forEach(u => scores[u.name] = 0);
+        completions.filter(c => { const d = new Date(c.completedAt); return d >= start && d <= end; }).forEach(c => { if (scores.hasOwnProperty(c.completedBy)) scores[c.completedBy] += c.points || 0; });
+        return scores;
+      }, [completions, users, start, end]);
+      const leader = useMemo(() => {
+        const sorted = users.map(u => ({ name: u.name, points: weeklyScores[u.name] || 0 })).sort((a, b) => b.points - a.points);
+        return sorted[0]?.points > 0 ? sorted[0].name : null;
+      }, [users, weeklyScores]);
       return (
         <div style={{ ...styles.container, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', position: 'relative' }}>
           <div style={{ textAlign: 'center', marginBottom: '40px' }}>
@@ -239,9 +250,11 @@
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', maxWidth: '320px', width: '100%', marginBottom: '24px' }}>
             {users.map((user) => (
-              <button key={user.name} onClick={() => { haptic('medium'); onSelect(user.name); }} style={{ ...styles.button, background: user.color, color: 'white', padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '32px' }}>{user.emoji}</span>
-                <span>{user.name}</span>
+              <button key={user.name} onClick={() => { haptic('medium'); onSelect(user.name); }} style={{ ...styles.button, background: user.color, color: 'white', padding: '16px 16px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', position: 'relative', overflow: 'hidden' }}>
+                {leader === user.name && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, background: 'rgba(255,255,255,0.25)', padding: '2px 0', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>👑 Leader</div>}
+                <span style={{ fontSize: '32px', marginTop: leader === user.name ? '16px' : '0' }}>{user.emoji}</span>
+                <span style={{ fontWeight: '600' }}>{user.name}</span>
+                <span style={{ fontSize: '12px', opacity: 0.85 }}>{weeklyScores[user.name] || 0} pts</span>
               </button>
             ))}
           </div>
@@ -743,7 +756,6 @@
                   <p style={styles.subtitle}>{isAdmin ? 'Manage chores below' : 'Complete chores to earn points'}</p>
                 </div>
               </div>
-              <button onClick={onLogout} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: '14px' }}>← Switch</button>
             </header>
             <Scoreboard completions={completions} users={users} weekOffset={weekOffset} onWeekChange={onWeekChange} darkMode={darkMode} />
             <FilterBar filter={filter} onFilterChange={setFilter} users={users} darkMode={darkMode} />
@@ -769,6 +781,7 @@
           </div>
           <AppFooter darkMode={darkMode} />
           <nav style={styles.nav}>
+            <button onClick={onLogout} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>🏠</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Home</span></button>
             <button style={{ ...styles.navBtn, color: '#45B7D1' }}><span style={{ fontSize: '20px' }}>📋</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Chores</span></button>
             <button onClick={() => onNavigate('history')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>📊</span><span style={{ fontSize: '11px', fontWeight: '600' }}>History</span></button>
             {isAdmin && <button onClick={() => onNavigate('manage')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>⚙️</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Manage</span></button>}
@@ -778,7 +791,7 @@
       );
     }
 
-    function HistoryView({ completions, users, onNavigate, onUndo, isAdmin, darkMode }) {
+    function HistoryView({ completions, users, onNavigate, onUndo, onLogout, isAdmin, darkMode }) {
       const styles = getStyles(darkMode);
       const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
       const filteredCompletions = useMemo(() => {
@@ -805,6 +818,7 @@
           </div>
           <AppFooter darkMode={darkMode} />
           <nav style={styles.nav}>
+            <button onClick={onLogout} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>🏠</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Home</span></button>
             <button onClick={() => onNavigate('chores')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>📋</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Chores</span></button>
             <button style={{ ...styles.navBtn, color: '#45B7D1' }}><span style={{ fontSize: '20px' }}>📊</span><span style={{ fontSize: '11px', fontWeight: '600' }}>History</span></button>
             {isAdmin && <button onClick={() => onNavigate('manage')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>⚙️</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Manage</span></button>}
@@ -814,7 +828,7 @@
       );
     }
 
-    function SettingsView({ users, onSaveUsers, darkMode, onToggleDarkMode, onNavigate }) {
+    function SettingsView({ users, onSaveUsers, darkMode, onToggleDarkMode, onNavigate, onLogout }) {
       const styles = getStyles(darkMode);
       const [showCustomize, setShowCustomize] = useState(false);
       return (
@@ -828,6 +842,7 @@
           </div>
           <AppFooter darkMode={darkMode} />
           <nav style={styles.nav}>
+            <button onClick={onLogout} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>🏠</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Home</span></button>
             <button onClick={() => onNavigate('chores')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>📋</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Chores</span></button>
             <button onClick={() => onNavigate('history')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>📊</span><span style={{ fontSize: '11px', fontWeight: '600' }}>History</span></button>
             <button onClick={() => onNavigate('manage')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>⚙️</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Manage</span></button>
@@ -837,7 +852,7 @@
       );
     }
 
-    function ManageView({ chores, users, onAddChore, onAddBulkChores, onDeleteChore, onNavigate, templates, onSaveTemplate, onDeleteTemplate, onUpdateTemplate, darkMode }) {
+    function ManageView({ chores, users, onAddChore, onAddBulkChores, onDeleteChore, onNavigate, onLogout, templates, onSaveTemplate, onDeleteTemplate, onUpdateTemplate, darkMode }) {
       const styles = getStyles(darkMode);
       const [showForm, setShowForm] = useState(false);
       const [showTemplates, setShowTemplates] = useState(false);
@@ -1031,6 +1046,7 @@
           </div>
           <AppFooter darkMode={darkMode} />
           <nav style={styles.nav}>
+            <button onClick={onLogout} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>🏠</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Home</span></button>
             <button onClick={() => onNavigate('chores')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>📋</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Chores</span></button>
             <button onClick={() => onNavigate('history')} style={{ ...styles.navBtn, color: '#999' }}><span style={{ fontSize: '20px' }}>📊</span><span style={{ fontSize: '11px', fontWeight: '600' }}>History</span></button>
             <button style={{ ...styles.navBtn, color: '#45B7D1' }}><span style={{ fontSize: '20px' }}>⚙️</span><span style={{ fontSize: '11px', fontWeight: '600' }}>Manage</span></button>
@@ -1178,16 +1194,16 @@
         );
       }
 
-      if (!currentUser && !showPinEntry) return <UserSelect onSelect={handleUserSelect} users={users} darkMode={darkMode} />;
+      if (!currentUser && !showPinEntry) return <UserSelect onSelect={handleUserSelect} users={users} completions={completions} darkMode={darkMode} />;
       if (showPinEntry) return <EmojiPattern onSuccess={handlePinSuccess} onCancel={() => setShowPinEntry(false)} darkMode={darkMode} />;
 
       return (
         <>
           {editingChore && <EditChoreModal chore={editingChore} users={users} onSave={handleSaveEdit} onCancel={() => setEditingChore(null)} darkMode={darkMode} />}
           {undoCompletion && view === 'chores' && <UndoToast completion={undoCompletion.completion} onUndo={handleUndoFromToast} onDismiss={() => setUndoCompletion(null)} darkMode={darkMode} />}
-          {view === 'history' && <HistoryView completions={completions} users={users} onNavigate={setView} onUndo={handleUndo} isAdmin={isAdmin} darkMode={darkMode} />}
-          {view === 'manage' && isAdmin && <ManageView chores={chores} users={users} onAddChore={handleAddChore} onAddBulkChores={handleAddBulkChores} onDeleteChore={handleDeleteChore} onNavigate={setView} templates={templates} onSaveTemplate={handleSaveTemplate} onDeleteTemplate={handleDeleteTemplate} onUpdateTemplate={handleUpdateTemplate} darkMode={darkMode} />}
-          {view === 'settings' && isAdmin && <SettingsView users={users} onSaveUsers={handleSaveUsers} darkMode={darkMode} onToggleDarkMode={() => setDarkMode(d => !d)} onNavigate={setView} />}
+          {view === 'history' && <HistoryView completions={completions} users={users} onNavigate={setView} onUndo={handleUndo} onLogout={handleLogout} isAdmin={isAdmin} darkMode={darkMode} />}
+          {view === 'manage' && isAdmin && <ManageView chores={chores} users={users} onAddChore={handleAddChore} onAddBulkChores={handleAddBulkChores} onDeleteChore={handleDeleteChore} onNavigate={setView} onLogout={handleLogout} templates={templates} onSaveTemplate={handleSaveTemplate} onDeleteTemplate={handleDeleteTemplate} onUpdateTemplate={handleUpdateTemplate} darkMode={darkMode} />}
+          {view === 'settings' && isAdmin && <SettingsView users={users} onSaveUsers={handleSaveUsers} darkMode={darkMode} onToggleDarkMode={() => setDarkMode(d => !d)} onNavigate={setView} onLogout={handleLogout} />}
           {view === 'chores' && <ChoreView currentUser={currentUser} isAdmin={isAdmin} chores={chores} completions={completions} users={users} onComplete={handleComplete} onEdit={handleEditChore} onNavigate={setView} onLogout={handleLogout} onSaveUser={handleSaveUser} darkMode={darkMode} weekOffset={weekOffset} onWeekChange={setWeekOffset} />}
         </>
       );
