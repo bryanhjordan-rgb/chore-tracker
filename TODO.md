@@ -7,6 +7,7 @@ A list of planned features and improvements for the Chore Tracker app.
 ### Icon & Branding
 - [ ] **Fix favicon** - Update to use the more recent icon image
 - [ ] **Add iOS PNG icon** - Wire in dedicated PNG file for iOS home screen saving (user will provide)
+- [ ] **Add sunglasses emoji next to the crown emoji for rhe current week point leader. ideally put the sunglasses just below but overlapping the crown. so it looks lile they are one emoji. 
 
 ### Architecture
 - [ ] **Break app into separate pages/routes** - Enable deep linking so pull-to-refresh loads the specific view directly instead of reloading the entire app
