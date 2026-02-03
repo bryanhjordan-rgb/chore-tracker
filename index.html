@@ -126,6 +126,12 @@
           return true;
         } catch (error) { console.error('API addCompletion error:', error); return false; }
       },
+      async deleteCompletion(id) {
+        try {
+          await fetch(`${SUPABASE_URL}/completions?id=eq.${id}`, { method: 'DELETE', headers: supabaseHeaders });
+          return true;
+        } catch (error) { console.error('API deleteCompletion error:', error); return false; }
+      },
       async addTemplate(template) {
         try {
           await fetch(`${SUPABASE_URL}/templates`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify(toSnakeCase(template)) });
@@ -146,17 +152,22 @@
       },
       async updateUsers(users) {
         try {
+          console.log('Saving users to database:', users);
           const deleteRes = await fetch(`${SUPABASE_URL}/users?name=not.is.null`, { method: 'DELETE', headers: supabaseHeaders });
           if (!deleteRes.ok) {
             console.error('API updateUsers delete failed:', deleteRes.status, await deleteRes.text());
             return false;
           }
+          console.log('Deleted existing users successfully');
           if (users.length > 0) {
-            const insertRes = await fetch(`${SUPABASE_URL}/users`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify(users.map(toSnakeCase)) });
+            const usersData = users.map(toSnakeCase);
+            console.log('Inserting users:', usersData);
+            const insertRes = await fetch(`${SUPABASE_URL}/users`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify(usersData) });
             if (!insertRes.ok) {
               console.error('API updateUsers insert failed:', insertRes.status, await insertRes.text());
               return false;
             }
+            console.log('Inserted users successfully');
           }
           return true;
         } catch (error) { console.error('API updateUsers error:', error); return false; }
@@ -793,9 +804,11 @@
 
     function HistoryView({ completions, users, onNavigate, onUndo, onLogout, isAdmin, darkMode }) {
       const styles = getStyles(darkMode);
-      const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+      const getLocalDateString = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      const [selectedDate, setSelectedDate] = useState(getLocalDateString(new Date()));
       const filteredCompletions = useMemo(() => {
-        const selected = new Date(selectedDate);
+        const [year, month, day] = selectedDate.split('-').map(Number);
+        const selected = new Date(year, month - 1, day);
         return completions.filter(c => { const d = new Date(c.completedAt); return d.toDateString() === selected.toDateString(); }).sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
       }, [completions, selectedDate]);
       const getUser = (name) => users.find(u => u.name === name) || { color: '#999', emoji: '👤' };
@@ -1112,19 +1125,21 @@
           await api.updateChore(restoredChore);
         }
         setCompletions(prev => prev.filter(c => c.id !== completion.id));
+        await api.deleteCompletion(completion.id);
         setUndoCompletion(null);
         haptic('medium');
       };
 
-      const handleUndoFromToast = async () => { 
-        if (undoCompletion) { 
+      const handleUndoFromToast = async () => {
+        if (undoCompletion) {
           const restoredChore = { ...undoCompletion.chore, status: 'active' };
-          setChores(prev => prev.map(c => c.id === undoCompletion.chore.id ? restoredChore : c)); 
-          setCompletions(prev => prev.filter(c => c.id !== undoCompletion.completion.id)); 
+          setChores(prev => prev.map(c => c.id === undoCompletion.chore.id ? restoredChore : c));
+          setCompletions(prev => prev.filter(c => c.id !== undoCompletion.completion.id));
           await api.updateChore(restoredChore);
-          setUndoCompletion(null); 
-          haptic('medium'); 
-        } 
+          await api.deleteCompletion(undoCompletion.completion.id);
+          setUndoCompletion(null);
+          haptic('medium');
+        }
       };
       
       const handleEditChore = (chore) => setEditingChore(chore);
@@ -1172,13 +1187,23 @@
 
       const handleSaveUsers = async (newUsers) => {
         setUsers(newUsers);
-        await api.updateUsers(newUsers);
+        const success = await api.updateUsers(newUsers);
+        if (!success) {
+          console.warn('Failed to save users, reloading from database...');
+          const data = await api.getAll();
+          if (data?.users?.length > 0) setUsers(data.users);
+        }
       };
 
       const handleSaveUser = async (updatedUser) => {
         const newUsers = users.map(u => u.name === updatedUser.name ? updatedUser : u);
         setUsers(newUsers);
-        await api.updateUsers(newUsers);
+        const success = await api.updateUsers(newUsers);
+        if (!success) {
+          console.warn('Failed to save user, reloading from database...');
+          const data = await api.getAll();
+          if (data?.users?.length > 0) setUsers(data.users);
+        }
       };
 
       const styles = getStyles(darkMode);
