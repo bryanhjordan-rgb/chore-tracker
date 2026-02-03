@@ -12,7 +12,7 @@
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="config.js"></script>
+  <script src="config.js" onerror="window.CONFIG_MISSING=true"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', system-ui, sans-serif; }
@@ -22,6 +22,31 @@
   <div id="root"></div>
   <script type="text/babel">
     const { useState, useEffect, useMemo } = React;
+
+    // Check if config.js is loaded
+    if (typeof CONFIG === 'undefined' || window.CONFIG_MISSING) {
+      const root = document.getElementById('root');
+      root.innerHTML = `
+        <div style="font-family: 'Segoe UI', system-ui, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; text-align: center;">
+          <h1 style="color: #FF6B6B; margin-bottom: 20px;">Configuration Missing</h1>
+          <p style="color: #666; margin-bottom: 20px;">
+            The app needs a <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 4px;">config.js</code> file to run.
+          </p>
+          <div style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; text-align: left;">
+            <p style="margin-bottom: 10px;"><strong>To set up:</strong></p>
+            <ol style="color: #555; line-height: 1.8; padding-left: 20px;">
+              <li>Copy <code style="background: #e9ecef; padding: 2px 4px; border-radius: 3px;">config.example.js</code> to <code style="background: #e9ecef; padding: 2px 4px; border-radius: 3px;">config.js</code></li>
+              <li>Edit <code style="background: #e9ecef; padding: 2px 4px; border-radius: 3px;">config.js</code> with your Supabase credentials</li>
+              <li>Refresh this page</li>
+            </ol>
+          </div>
+          <p style="color: #999; margin-top: 20px; font-size: 14px;">
+            See <a href="config.example.js" style="color: #45B7D1;">config.example.js</a> for the template.
+          </p>
+        </div>
+      `;
+      throw new Error('config.js not found - see instructions above');
+    }
 
     // Load configuration from external config.js
     const DEFAULT_USERS = CONFIG.defaultUsers;
