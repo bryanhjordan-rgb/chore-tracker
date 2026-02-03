@@ -29,39 +29,106 @@
     const COLOR_OPTIONS = ['#FF6B6B', '#45B7D1', '#9B59B6', '#4ECDC4', '#FFE66D', '#FF8C42', '#98D8AA', '#E84A5F', '#2A363B', '#F67280'];
     const ADMIN_PATTERN = [2, 3, 6, 5]; // positions: 1-9 grid, top-left to bottom-right
 
-    const API_URL = 'https://script.google.com/macros/s/AKfycbyyLaVKgkG5RON_hN6kgFwSNsblccHNsrLCn1vLE0vfR-MGb9TcKKrTKghO-ElleqlG/exec';
+    const SUPABASE_URL = 'https://zkkudyxpupkyfmbifqyq.supabase.co/rest/v1';
+    const SUPABASE_KEY = 'sb_publishable__ibwbjPWSBxPG6oOgkglJQ_SsxkFTBX';
+    const supabaseHeaders = {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    };
+
+    const toSnakeCase = (obj) => {
+      if (!obj) return obj;
+      const map = { assignedTo: 'assigned_to', createdAt: 'created_at', choreId: 'chore_id', completedBy: 'completed_by', completedAt: 'completed_at', assignmentMode: 'assignment_mode' };
+      return Object.fromEntries(Object.entries(obj).map(([k, v]) => [map[k] || k, v]));
+    };
+    const toCamelCase = (obj) => {
+      if (!obj) return obj;
+      const map = { assigned_to: 'assignedTo', created_at: 'createdAt', chore_id: 'choreId', completed_by: 'completedBy', completed_at: 'completedAt', assignment_mode: 'assignmentMode' };
+      return Object.fromEntries(Object.entries(obj).map(([k, v]) => [map[k] || k, v]));
+    };
 
     const api = {
       async getAll() {
         try {
-          const response = await fetch(`${API_URL}?action=getAll`);
-          return await response.json();
+          const [choresRes, completionsRes, templatesRes, usersRes] = await Promise.all([
+            fetch(`${SUPABASE_URL}/chores?select=*`, { headers: supabaseHeaders }),
+            fetch(`${SUPABASE_URL}/completions?select=*`, { headers: supabaseHeaders }),
+            fetch(`${SUPABASE_URL}/templates?select=*`, { headers: supabaseHeaders }),
+            fetch(`${SUPABASE_URL}/users?select=*`, { headers: supabaseHeaders })
+          ]);
+          const [chores, completions, templates, users] = await Promise.all([
+            choresRes.json(), completionsRes.json(), templatesRes.json(), usersRes.json()
+          ]);
+          return {
+            chores: chores.map(toCamelCase),
+            completions: completions.map(toCamelCase),
+            templates: templates.map(toCamelCase),
+            users: users.map(toCamelCase)
+          };
         } catch (error) {
           console.error('API getAll error:', error);
           return null;
         }
       },
-      async call(action, data = null, id = null) {
+      async addChore(chore) {
         try {
-          let url = `${API_URL}?action=${action}`;
-          if (data) url += `&data=${encodeURIComponent(JSON.stringify(data))}`;
-          if (id) url += `&id=${encodeURIComponent(id)}`;
-          await fetch(url, { mode: 'no-cors' });
+          await fetch(`${SUPABASE_URL}/chores`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify(toSnakeCase(chore)) });
           return true;
-        } catch (error) {
-          console.error(`API ${action} error:`, error);
-          return false;
-        }
+        } catch (error) { console.error('API addChore error:', error); return false; }
       },
-      addChore: (chore) => api.call('addChore', chore),
-      addChores: (chores) => api.call('addChores', chores),
-      updateChore: (chore) => api.call('updateChore', chore),
-      deleteChore: (id) => api.call('deleteChore', null, id),
-      addCompletion: (completion) => api.call('addCompletion', completion),
-      addTemplate: (template) => api.call('addTemplate', template),
-      updateTemplate: (template) => api.call('updateTemplate', template),
-      deleteTemplate: (id) => api.call('deleteTemplate', null, id),
-      updateUsers: (users) => api.call('updateUsers', users),
+      async addChores(chores) {
+        try {
+          await fetch(`${SUPABASE_URL}/chores`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify(chores.map(toSnakeCase)) });
+          return true;
+        } catch (error) { console.error('API addChores error:', error); return false; }
+      },
+      async updateChore(chore) {
+        try {
+          await fetch(`${SUPABASE_URL}/chores?id=eq.${chore.id}`, { method: 'PATCH', headers: supabaseHeaders, body: JSON.stringify(toSnakeCase(chore)) });
+          return true;
+        } catch (error) { console.error('API updateChore error:', error); return false; }
+      },
+      async deleteChore(id) {
+        try {
+          await fetch(`${SUPABASE_URL}/chores?id=eq.${id}`, { method: 'DELETE', headers: supabaseHeaders });
+          return true;
+        } catch (error) { console.error('API deleteChore error:', error); return false; }
+      },
+      async addCompletion(completion) {
+        try {
+          await fetch(`${SUPABASE_URL}/completions`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify(toSnakeCase(completion)) });
+          return true;
+        } catch (error) { console.error('API addCompletion error:', error); return false; }
+      },
+      async addTemplate(template) {
+        try {
+          await fetch(`${SUPABASE_URL}/templates`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify(toSnakeCase(template)) });
+          return true;
+        } catch (error) { console.error('API addTemplate error:', error); return false; }
+      },
+      async updateTemplate(template) {
+        try {
+          await fetch(`${SUPABASE_URL}/templates?id=eq.${template.id}`, { method: 'PATCH', headers: supabaseHeaders, body: JSON.stringify(toSnakeCase(template)) });
+          return true;
+        } catch (error) { console.error('API updateTemplate error:', error); return false; }
+      },
+      async deleteTemplate(id) {
+        try {
+          await fetch(`${SUPABASE_URL}/templates?id=eq.${id}`, { method: 'DELETE', headers: supabaseHeaders });
+          return true;
+        } catch (error) { console.error('API deleteTemplate error:', error); return false; }
+      },
+      async updateUsers(users) {
+        try {
+          await fetch(`${SUPABASE_URL}/users`, { method: 'DELETE', headers: supabaseHeaders });
+          if (users.length > 0) {
+            await fetch(`${SUPABASE_URL}/users`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify(users.map(toSnakeCase)) });
+          }
+          return true;
+        } catch (error) { console.error('API updateUsers error:', error); return false; }
+      },
     };
 
     const storage = {
