@@ -16,7 +16,7 @@
 
 ```
 chore-tracker/
-├── index.html        # Entire application (~1260 lines)
+├── index.html        # Entire application (~1370 lines)
 ├── config.example.js # Configuration template (copy to config.js)
 ├── config.js         # Local configuration (gitignored, user-created)
 ├── icon.svg          # App icon (favicon + iOS home screen)
@@ -69,7 +69,7 @@ const CONFIG = {
 
 ### Weekly Scoring
 - Points are tracked on a weekly basis (Monday-Sunday)
-- Scoreboard shows current week leader with crown badge
+- Scoreboard shows current week leader with crown and sunglasses badge (👑😎)
 - History view shows completions grouped by day within the selected week
 - Week navigation allows viewing past weeks
 
@@ -105,10 +105,11 @@ Backend: Supabase REST API
 | `ManageView` | Admin chore management and batch assignment |
 | `SettingsView` | Appearance and user customization |
 | `Scoreboard` | Weekly points leaderboard with navigation |
-| `ChoreCard` | Individual chore display with completion |
+| `ChoreCard` | Individual chore display with completion animation |
 | `FilterBar` | Filter chores by user |
 | `AppHeader` | Consistent header with logo |
 | `AppFooter` | Copyright footer |
+| `ErrorBoundary` | Catches JS errors and displays recovery UI |
 
 ### Modal Components
 | Component | Purpose |
@@ -258,7 +259,14 @@ Admin can customize all kids via Settings -> Customize Kids:
 ## Limitations
 
 - No offline support (requires internet for API)
-- No error boundaries for crash recovery
 - Single-file architecture limits code organization
 - No deep linking (pull-to-refresh reloads entire app)
 - No push notifications
+
+## Commit Guidelines
+
+When making changes to this codebase, always:
+1. Update `TODO.md` to mark completed items and add new tasks
+2. Update `README.md` if user-facing features change
+3. Update `CLAUDE.md` if architecture, components, or developer info changes
+4. Keep line count estimate in Project Structure section current
