@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Do Your Chores, Bruh** is a mobile-friendly single-page web application for families to manage household chores and reward kids for completing tasks. Features a point-based reward system with weekly scoreboards.
+**Do Your Chores, Bruh** is a mobile-friendly single-page web application for families to manage household chores and reward kids for completing tasks. Features a point-based reward system with weekly scoreboards, batch chore assignment, and customizable user profiles.
 
 ## Tech Stack
 
@@ -16,10 +16,13 @@
 
 ```
 chore-tracker/
-├── index.html    # Entire application (~900 lines)
-├── icon.svg      # App icon (favicon + iOS home screen)
-├── CLAUDE.md     # Developer documentation
-└── README.md     # Project readme
+├── index.html        # Entire application (~1260 lines)
+├── config.example.js # Configuration template (copy to config.js)
+├── config.js         # Local configuration (gitignored, user-created)
+├── icon.svg          # App icon (favicon + iOS home screen)
+├── CLAUDE.md         # Developer documentation
+├── README.md         # Project readme
+└── TODO.md           # Future improvements
 ```
 
 Single HTML file contains: HTML structure, React components, inline CSS, app logic, and API integration.
@@ -27,38 +30,60 @@ Single HTML file contains: HTML structure, React components, inline CSS, app log
 ## Running the App
 
 No build process required:
-1. Open `index.html` directly in a modern browser
-2. Or host on any static file server (GitHub Pages, Netlify, etc.)
+1. Copy `config.example.js` to `config.js`
+2. Edit `config.js` with your Supabase credentials
+3. Open `index.html` directly in a modern browser
+4. Or host on any static file server (GitHub Pages, Netlify, etc.)
+
+## Configuration
+
+The app uses an external `config.js` file for all configuration. Copy `config.example.js` to `config.js` and customize:
+
+```javascript
+const CONFIG = {
+  supabase: {
+    url: 'https://[project-id].supabase.co/rest/v1',
+    key: '[your-anon-key]'
+  },
+  adminPattern: [1, 2, 3, 4],  // Pattern lock positions
+  defaultUsers: [
+    { name: 'Child1', emoji: '👧', color: '#FF6B6B' },
+    // Add more users...
+  ],
+  emojiOptions: ['👧', '👦', '🧒', ...],  // Avatar choices
+  colorOptions: ['#FF6B6B', '#45B7D1', ...]  // Theme colors
+};
+```
+
+**Important**: `config.js` should be gitignored as it contains API keys.
 
 ## Key Concepts
 
 ### User Roles
-- **Kids**: Can view/complete their assigned chores and optional chores
-- **Admin**: Full access with pattern lock protection
+- **Kids**: Can view/complete their assigned chores and optional chores, customize their profile
+- **Admin**: Full access with pattern lock protection - manage chores, templates, users, settings
 
 ### Chore Types
 - **Mandatory**: Assigned to specific kids, no points, tagged "Required"
 - **Optional**: Any user can complete for points, tagged "Optional"
 
-### Default Users
-Sophia, Henry, Charlotte, Maxwell - customizable in Settings
+### Weekly Scoring
+- Points are tracked on a weekly basis (Monday-Sunday)
+- Scoreboard shows current week leader with crown badge
+- History view shows completions grouped by day within the selected week
+- Week navigation allows viewing past weeks
 
 ## API Integration
 
 Backend: Supabase REST API
 
-### Supabase Configuration
-```javascript
-const SUPABASE_URL = 'https://[project-id].supabase.co/rest/v1';
-const SUPABASE_KEY = '[your-anon-key]';
-```
-
 ### API Operations
 - `getAll()` - Fetch all chores, completions, templates, and users
-- `addChore(chore)` / `addChores(chores)` - Create chores
+- `addChore(chore)` / `addChores(chores)` - Create chores (single or bulk)
 - `updateChore(chore)` - Update existing chore
 - `deleteChore(id)` - Remove a chore
 - `addCompletion(completion)` - Record chore completion
+- `deleteCompletion(id)` - Remove a completion (for undo)
 - `addTemplate(template)` / `updateTemplate(template)` / `deleteTemplate(id)` - Manage templates
 - `updateUsers(users)` - Update user list
 
@@ -72,15 +97,31 @@ const SUPABASE_KEY = '[your-anon-key]';
 
 | Component | Purpose |
 |-----------|---------|
-| `UserSelect` | Initial user/role selection |
+| `App` | Root component, state management, routing |
+| `UserSelect` | Initial user/role selection with weekly scores |
 | `EmojiPattern` | Admin pattern lock authentication |
-| `ChoreView` | Main task list view |
-| `HistoryView` | Completion history with filtering |
-| `ManageView` | Admin chore management |
+| `ChoreView` | Main task list view with filter bar |
+| `HistoryView` | Completion history with weekly scope and day grouping |
+| `ManageView` | Admin chore management and batch assignment |
 | `SettingsView` | Appearance and user customization |
-| `Scoreboard` | Weekly points leaderboard |
+| `Scoreboard` | Weekly points leaderboard with navigation |
+| `ChoreCard` | Individual chore display with completion |
+| `FilterBar` | Filter chores by user |
+| `AppHeader` | Consistent header with logo |
+| `AppFooter` | Copyright footer |
+
+### Modal Components
+| Component | Purpose |
+|-----------|---------|
+| `ConfirmModal` | Delete confirmation dialog |
+| `UserPickerModal` | Select who completed a chore (admin) |
+| `MultiUserPickerModal` | Assign chore to multiple kids |
 | `AssignmentPreviewModal` | Preview batch chore assignments |
-| `KidExclusionModal` | Select kids to exclude from batch assignment |
+| `KidExclusionModal` | Select kids to exclude from batch |
+| `EditChoreModal` | Edit existing chore details |
+| `CustomizeKidsModal` | Admin: edit all kids' profiles |
+| `UserCustomizeModal` | Kid: customize own profile |
+| `UndoToast` | Undo recent chore completion |
 
 ## Data Models
 
@@ -105,7 +146,8 @@ Admin access is protected by a 4-tap emoji pattern on a 3x3 grid.
 // 4 5 6
 // 7 8 9
 
-const ADMIN_PATTERN = [2, 3, 6, 5]; // Default pattern
+// Set in config.js:
+adminPattern: [2, 3, 6, 5]  // Default pattern
 ```
 
 The emoji grid shuffles randomly on each login attempt for added security.
@@ -130,12 +172,34 @@ Allows admin to select multiple templates and generate chores with random kid as
 - If more chores than kids, some kids get multiple
 - Optional chores retain their point values
 
+## Undo Completion Feature
+
+When a chore is completed:
+- A toast notification appears at the bottom of the screen
+- Shows "Completed: [chore name]" with an Undo button
+- Toast auto-dismisses after 5 seconds
+- Clicking Undo restores the chore and removes the completion
+- Admin can also undo completions from History view
+
+## User Profile Customization
+
+Kids can customize their own profile by tapping their emoji in the chore view:
+- Choose from ~80 emoji options (various skin tones, animals, objects)
+- Pick any color using color picker
+- Changes sync to database
+
+Admin can customize all kids via Settings -> Customize Kids:
+- Edit name, emoji, and color for each kid
+- Add or remove kids
+- Changes reflect immediately across all views
+
 ## Styling
 
 - Theme toggle: Light/Dark mode (saved to localStorage)
 - Light: White backgrounds, soft shadows
 - Dark: Navy/charcoal (#1a1a2e, #1e1e2f)
 - Accent colors: Blue (#45B7D1), Red (#FF6B6B), Teal (#4ECDC4), Purple (#9B59B6)
+- Points displayed in yellow (#FFE66D)
 
 ## Development Notes
 
@@ -147,10 +211,9 @@ Allows admin to select multiple templates and generate chores with random kid as
 
 ## Common Modifications
 
-- Change `DEFAULT_USERS` array for different kid names
-- Modify `ADMIN_PATTERN` constant for different unlock pattern
-- Update `SUPABASE_URL` and `SUPABASE_KEY` to use a different backend
-- Edit `getStyles()` function for custom theming
+- Edit `config.js` to change users, pattern, or Supabase credentials
+- Edit `getStyles()` function in index.html for custom theming
+- Modify `PATTERN_EMOJI` array for different emoji choices in pattern lock
 
 ## Supabase Database Schema
 
@@ -162,7 +225,7 @@ Allows admin to select multiple templates and generate chores with random kid as
 | description | text | Chore description |
 | points | integer | Points for optional chores |
 | assigned_to | text | Kid name (for mandatory) |
-| status | text | `pending` or `completed` |
+| status | text | `pending`, `active`, or `completed` |
 | created_at | timestamp | Creation timestamp |
 
 ### completions
@@ -197,3 +260,5 @@ Allows admin to select multiple templates and generate chores with random kid as
 - No offline support (requires internet for API)
 - No error boundaries for crash recovery
 - Single-file architecture limits code organization
+- No deep linking (pull-to-refresh reloads entire app)
+- No push notifications
