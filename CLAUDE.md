@@ -69,7 +69,7 @@ const CONFIG = {
 
 ### Weekly Scoring
 - Points are tracked on a weekly basis (Monday-Sunday)
-- Scoreboard shows current week leader with crown and sunglasses badge (👑😎)
+- Scoreboard shows current week leader with crown and sunglasses badge (👑🕶️)
 - History view shows completions grouped by day within the selected week
 - Week navigation allows viewing past weeks
 

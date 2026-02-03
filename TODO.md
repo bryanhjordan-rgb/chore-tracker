@@ -62,6 +62,6 @@ place for the app to live.
 - [x] Multi-user chore assignment
 - [x] Template/saved chores system
 - [x] Fix favicon (already using icon.svg)
-- [x] Sunglasses emoji for weekly leader (overlapping 👑😎)
+- [x] Sunglasses emoji for weekly leader (overlapping 👑🕶️)
 - [x] Chore completion animations
 - [x] React error boundaries for crash recovery
