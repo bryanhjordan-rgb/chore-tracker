@@ -279,7 +279,7 @@
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', maxWidth: '320px', width: '100%', marginBottom: '24px' }}>
             {users.map((user) => (
               <button key={user.name} onClick={() => { haptic('medium'); onSelect(user.name); }} style={{ ...styles.button, background: user.color, color: 'white', padding: '16px 16px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', position: 'relative', overflow: 'hidden' }}>
-                {leader === user.name && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, background: 'rgba(255,255,255,0.25)', padding: '2px 0', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>👑 Leader</div>}
+                {leader === user.name && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, background: 'rgba(255,255,255,0.25)', padding: '2px 0', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}><span style={{ position: 'relative', display: 'inline-block' }}><span>👑</span><span style={{ position: 'absolute', top: '6px', left: '50%', transform: 'translateX(-50%)', fontSize: '14px' }}>🕶️</span></span> Leader</div>}
                 <span style={{ fontSize: '32px', marginTop: leader === user.name ? '16px' : '0' }}>{user.emoji}</span>
                 <span style={{ fontWeight: '600' }}>{user.name}</span>
                 <span style={{ fontSize: '12px', opacity: 0.85 }}>{weeklyScores[user.name] || 0} pts</span>
@@ -710,7 +710,7 @@
                     <span style={{ position: 'absolute', top: '-2px', left: '50%', transform: 'translateX(-50%)', zIndex: 2 }}>👑</span>
                   )}
                   {i === 0 && s.points > 0 && (
-                    <span style={{ position: 'absolute', top: '8px', left: '50%', transform: 'translateX(-50%)', zIndex: 3, fontSize: '12px' }}>🕶️</span>
+                    <span style={{ position: 'absolute', top: '6px', left: '50%', transform: 'translateX(-50%)', zIndex: 3, fontSize: '18px' }}>🕶️</span>
                   )}
                   <span style={{ visibility: i === 0 && s.points > 0 ? 'hidden' : 'visible' }}>{s.emoji}</span>
                   {i === 0 && s.points > 0 && <span style={{ marginTop: '14px', display: 'block' }}>{s.emoji}</span>}
