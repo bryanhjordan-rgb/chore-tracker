@@ -710,7 +710,7 @@
                     <span style={{ position: 'absolute', top: '-2px', left: '50%', transform: 'translateX(-50%)', zIndex: 2 }}>👑</span>
                   )}
                   {i === 0 && s.points > 0 && (
-                    <span style={{ position: 'absolute', top: '8px', left: '50%', transform: 'translateX(-50%)', zIndex: 3, fontSize: '12px' }}>😎</span>
+                    <span style={{ position: 'absolute', top: '8px', left: '50%', transform: 'translateX(-50%)', zIndex: 3, fontSize: '12px' }}>🕶️</span>
                   )}
                   <span style={{ visibility: i === 0 && s.points > 0 ? 'hidden' : 'visible' }}>{s.emoji}</span>
                   {i === 0 && s.points > 0 && <span style={{ marginTop: '14px', display: 'block' }}>{s.emoji}</span>}
@@ -1195,11 +1195,32 @@
       }
     }
 
+    // Hash-based routing helpers
+    const VALID_VIEWS = ['chores', 'history', 'manage', 'settings'];
+    const ADMIN_VIEWS = ['manage', 'settings'];
+
+    const getHashView = () => {
+      const hash = window.location.hash.replace('#/', '').replace('#', '');
+      return VALID_VIEWS.includes(hash) ? hash : 'chores';
+    };
+
+    const setHashView = (view) => {
+      const newHash = `#/${view}`;
+      if (window.location.hash !== newHash) {
+        window.history.pushState(null, '', newHash);
+      }
+    };
+
     function App() {
       const [currentUser, setCurrentUser] = useState(null);
       const [isAdmin, setIsAdmin] = useState(false);
       const [showPinEntry, setShowPinEntry] = useState(false);
-      const [view, setView] = useState('chores');
+      const [pendingAdminView, setPendingAdminView] = useState(null);
+      const [view, setView] = useState(() => {
+        const hashView = getHashView();
+        // Don't auto-navigate to admin views without auth
+        return ADMIN_VIEWS.includes(hashView) ? 'chores' : hashView;
+      });
       const [weekOffset, setWeekOffset] = useState(0);
       const [editingChore, setEditingChore] = useState(null);
       const [undoCompletion, setUndoCompletion] = useState(null);
@@ -1228,9 +1249,72 @@
 
       useEffect(() => { storage.set('darkMode', darkMode); }, [darkMode]);
 
-      const handleUserSelect = (user) => { if (user === 'admin') setShowPinEntry(true); else { setCurrentUser(user); setIsAdmin(false); } };
-      const handlePinSuccess = () => { setShowPinEntry(false); setCurrentUser('Admin'); setIsAdmin(true); };
-      const handleLogout = () => { setCurrentUser(null); setIsAdmin(false); setView('chores'); setWeekOffset(0); };
+      // Sync URL hash when view changes
+      useEffect(() => {
+        setHashView(view);
+      }, [view]);
+
+      // Handle browser back/forward navigation
+      useEffect(() => {
+        const handlePopState = () => {
+          const hashView = getHashView();
+          // If navigating to admin view without auth, redirect to chores
+          if (ADMIN_VIEWS.includes(hashView) && !isAdmin) {
+            setView('chores');
+            setHashView('chores');
+          } else {
+            setView(hashView);
+          }
+        };
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+      }, [isAdmin]);
+
+      // Check for pending admin view on initial load
+      useEffect(() => {
+        const hashView = getHashView();
+        if (ADMIN_VIEWS.includes(hashView)) {
+          setPendingAdminView(hashView);
+        }
+      }, []);
+
+      const handleUserSelect = (user) => {
+        if (user === 'admin') {
+          setShowPinEntry(true);
+        } else {
+          setCurrentUser(user);
+          setIsAdmin(false);
+          // Navigate to pending view or current hash
+          const hashView = getHashView();
+          if (!ADMIN_VIEWS.includes(hashView)) {
+            setView(hashView);
+          }
+        }
+      };
+
+      const handlePinSuccess = () => {
+        setShowPinEntry(false);
+        setCurrentUser('Admin');
+        setIsAdmin(true);
+        // Navigate to pending admin view if one was requested
+        if (pendingAdminView) {
+          setView(pendingAdminView);
+          setPendingAdminView(null);
+        } else {
+          const hashView = getHashView();
+          if (ADMIN_VIEWS.includes(hashView)) {
+            setView(hashView);
+          }
+        }
+      };
+
+      const handleLogout = () => {
+        setCurrentUser(null);
+        setIsAdmin(false);
+        setView('chores');
+        setWeekOffset(0);
+        window.history.pushState(null, '', '#/chores');
+      };
       
       const handleComplete = async (chore, completedBy) => {
         const completion = { id: generateId(), choreId: chore.id, description: chore.description, points: completedBy === null ? 0 : (chore.points || 0), completedBy: completedBy === null ? 'Parent' : completedBy, completedAt: new Date().toISOString() };

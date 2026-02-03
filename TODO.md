@@ -10,11 +10,11 @@ A list of planned features and improvements for the Chore Tracker app.
 - [x] **Add sunglasses emoji next to the crown emoji** - Sunglasses emoji overlaps below the crown for the current week point leader 
 
 ### Architecture
-- [ ] **Break app into separate pages/routes** - Enable deep linking so pull-to-refresh loads the specific view directly instead of reloading the entire app
-  - Consider using hash-based routing (e.g., `#/chores`, `#/history`, `#/manage`, `#/settings`)
-  - Preserve current view state in URL
-  - Allow bookmarking specific views
-  - Handle browser back/forward navigation
+- [x] **Hash-based routing** - Deep linking with `#/chores`, `#/history`, `#/manage`, `#/settings`
+  - Preserves view state in URL
+  - Supports bookmarking and sharing links
+  - Browser back/forward navigation works
+  - Admin views require re-authentication on refresh
 
 ## Medium Priority
 
@@ -62,6 +62,7 @@ place for the app to live.
 - [x] Multi-user chore assignment
 - [x] Template/saved chores system
 - [x] Fix favicon (already using icon.svg)
-- [x] Sunglasses emoji for weekly leader (overlapping 👑😎)
+- [x] Sunglasses emoji for weekly leader (overlapping 👑🕶️)
 - [x] Chore completion animations
 - [x] React error boundaries for crash recovery
+- [x] Hash-based routing for deep linking
