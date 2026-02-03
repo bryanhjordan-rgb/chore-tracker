@@ -42,6 +42,9 @@ A list of planned features and improvements for the Chore Tracker app.
 - [ ] **Split into multiple files** - Break single-file app into modules (requires build step)
 - [ ] **Add unit tests** - Test critical functions like scoring, assignment logic
 - [ ] **Service worker** - Enable PWA features like offline caching
+- [ ] **Map to Domain** - Set up a proper domain with SSL etc so that there is a real
+place for the app to live. 
+
 
 ### Visual
 - [ ] **Custom themes** - More color scheme options beyond light/dark
