@@ -16,7 +16,7 @@
 
 ```
 chore-tracker/
-├── index.html        # Entire application (~1450 lines)
+├── index.html        # Entire application (~1570 lines)
 ├── config.example.js # Configuration template (copy to config.js)
 ├── config.js         # Local configuration (gitignored, user-created)
 ├── icon.svg          # App icon (favicon + iOS home screen)
@@ -181,6 +181,22 @@ When a chore is completed:
 - Toast auto-dismisses after 5 seconds
 - Clicking Undo restores the chore and removes the completion
 - Admin can also undo completions from History view
+
+## Admin Delete Features
+
+### Delete History Entries
+Admin can delete completion history entries from the History view:
+- **Single delete**: Click the trash icon next to any history entry
+- **Bulk delete**: Click "Select" button, check multiple entries, then click "Delete (N)"
+- Confirmation dialog appears before deletion
+- Unlike undo, delete only removes the history entry (does not restore the chore)
+
+### Bulk Delete Chores
+Admin can delete multiple active chores at once from the Manage view:
+- Click "Select" button next to "Active Chores" header
+- Check the chores to delete (click card or checkbox)
+- Click "Delete (N)" button to confirm
+- Confirmation dialog appears before deletion
 
 ## User Profile Customization
 
