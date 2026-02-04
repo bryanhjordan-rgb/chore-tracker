@@ -8,7 +8,7 @@ A list of planned features and improvements for the Chore Tracker app.
 - [x] **Fix favicon** - Update to use the more recent icon image
 - [ ] **Add iOS PNG icon** - Wire in dedicated PNG file for iOS home screen saving (user will provide)
 - [x] **Add sunglasses emoji next to the crown emoji** - Sunglasses emoji overlaps below the crown for the current week point leader 
-
+- [ ] **Easted Egg** -  When completeing a chore, a user has a 1 in ten chance to trigger an easter egg which will appear a hampster emoji on the screen for no more than 20 seconds and if clicked during that time will trigger a "for fun only" 1,000 points for their name (which will mot persist sessions or be written to the database, its just for fun!
 ### Architecture
 - [x] **Hash-based routing** - Deep linking with `#/chores`, `#/history`, `#/manage`, `#/settings`
   - Preserves view state in URL
