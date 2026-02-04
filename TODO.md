@@ -34,6 +34,12 @@ A list of planned features and improvements for the Chore Tracker app.
 - [ ] **Bulk delete chores** - Select multiple chores to delete at once
 - [ ] **Chore categories** - Organize chores by room or type
 - [ ] **Export data** - Download history as CSV/PDF
+- [ ] **Database backup** - Complete database backup functionality
+  - Admin panel button to trigger full backup of all tables (chores, completions, templates, users)
+  - Export options: Google Sheets, JSON file, or other cloud storage
+  - Automated scheduled backups (daily/weekly)
+  - Version retention: keep N most recent backup snapshots
+  - Restore capability from backup
 
 ## Low Priority
 
