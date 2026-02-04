@@ -877,8 +877,11 @@
       );
     }
 
-    function HistoryView({ completions, users, onNavigate, onUndo, onLogout, isAdmin, darkMode, weekOffset = 0, onWeekChange }) {
+    function HistoryView({ completions, users, onNavigate, onUndo, onDelete, onDeleteMultiple, onLogout, isAdmin, darkMode, weekOffset = 0, onWeekChange }) {
       const styles = getStyles(darkMode);
+      const [selectMode, setSelectMode] = useState(false);
+      const [selectedIds, setSelectedIds] = useState([]);
+      const [deleteConfirm, setDeleteConfirm] = useState(null);
       const baseDate = new Date();
       baseDate.setDate(baseDate.getDate() + (weekOffset * 7));
       const { start, end } = getWeekBounds(baseDate);
@@ -897,9 +900,23 @@
         });
         return Object.entries(groups).sort((a, b) => new Date(b[0]) - new Date(a[0]));
       }, [filteredCompletions]);
+      const toggleSelect = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+      const handleDeleteConfirm = () => {
+        haptic('medium');
+        if (deleteConfirm.type === 'single') {
+          onDelete(deleteConfirm.completion);
+        } else if (deleteConfirm.type === 'bulk') {
+          onDeleteMultiple(selectedIds);
+          setSelectedIds([]);
+          setSelectMode(false);
+        }
+        setDeleteConfirm(null);
+      };
+      const exitSelectMode = () => { setSelectMode(false); setSelectedIds([]); };
       return (
         <div style={{ ...styles.container, padding: '16px', paddingBottom: '100px', display: 'flex', flexDirection: 'column' }}>
           <AppHeader darkMode={darkMode} />
+          {deleteConfirm && <ConfirmModal message={deleteConfirm.type === 'bulk' ? `Delete ${selectedIds.length} history item${selectedIds.length > 1 ? 's' : ''}?` : 'Delete this history entry?'} onConfirm={handleDeleteConfirm} onCancel={() => setDeleteConfirm(null)} darkMode={darkMode} />}
           <div style={{ flex: 1 }}>
             <header style={{ marginBottom: '20px' }}><h1 style={{ ...styles.title, fontSize: '22px' }}>📊 Completed Chores</h1><p style={styles.subtitle}>See what's been accomplished</p></header>
             <div style={{ ...styles.card, marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -910,15 +927,28 @@
               </div>
               <button onClick={() => onWeekChange(weekOffset + 1)} disabled={isCurrentWeek} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: isCurrentWeek ? 'default' : 'pointer', padding: '8px', opacity: isCurrentWeek ? 0.3 : 1 }}>→</button>
             </div>
+            {isAdmin && filteredCompletions.length > 0 && (
+              <div style={{ marginBottom: '16px', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                {selectMode ? (
+                  <>
+                    <button onClick={exitSelectMode} style={{ ...styles.button, padding: '8px 16px', fontSize: '13px', background: darkMode ? '#333' : '#f0f0f0', color: darkMode ? '#ccc' : '#666' }}>Cancel</button>
+                    {selectedIds.length > 0 && <button onClick={() => setDeleteConfirm({ type: 'bulk' })} style={{ ...styles.button, padding: '8px 16px', fontSize: '13px', background: '#FF6B6B', color: 'white' }}>Delete ({selectedIds.length})</button>}
+                  </>
+                ) : (
+                  <button onClick={() => setSelectMode(true)} style={{ ...styles.button, padding: '8px 16px', fontSize: '13px', background: darkMode ? '#333' : '#f0f0f0', color: darkMode ? '#ccc' : '#666' }}>Select</button>
+                )}
+              </div>
+            )}
             {groupedByDay.length > 0 ? (
               <div>{groupedByDay.map(([dayKey, dayCompletions]) => (
                 <div key={dayKey} style={{ marginBottom: '20px' }}>
                   <div style={{ fontSize: '13px', fontWeight: '600', color: '#999', marginBottom: '8px', paddingLeft: '4px' }}>{formatDay(dayKey)}</div>
-                  {dayCompletions.map((c) => { const user = getUser(c.completedBy); return (
-                    <div key={c.id} style={{ ...styles.card, borderLeft: `4px solid ${user.color}`, marginBottom: '8px' }}>
+                  {dayCompletions.map((c) => { const user = getUser(c.completedBy); const isSelected = selectedIds.includes(c.id); return (
+                    <div key={c.id} onClick={selectMode ? () => toggleSelect(c.id) : undefined} style={{ ...styles.card, borderLeft: `4px solid ${user.color}`, marginBottom: '8px', cursor: selectMode ? 'pointer' : 'default', border: isSelected ? '2px solid #45B7D1' : undefined, background: isSelected ? (darkMode ? '#333' : '#e8f4f8') : undefined }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        {selectMode && <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(c.id)} style={{ width: '20px', height: '20px', marginRight: '12px', cursor: 'pointer' }} onClick={(e) => e.stopPropagation()} />}
                         <div style={{ flex: 1 }}><div style={{ fontWeight: '600', marginBottom: '4px' }}>{c.description}</div><div style={{ fontSize: '13px', color: '#999' }}>{user.emoji} <span style={{ fontWeight: '600' }}>{c.completedBy}</span><span style={{ margin: '0 8px' }}>•</span>{new Date(c.completedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</div></div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>{c.points > 0 && <div style={{ fontSize: '20px', fontWeight: '700', color: '#FFE66D' }}>+{c.points}</div>}{isAdmin && <button onClick={() => onUndo(c)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#999' }} title="Undo">↩️</button>}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{c.points > 0 && <div style={{ fontSize: '20px', fontWeight: '700', color: '#FFE66D' }}>+{c.points}</div>}{isAdmin && !selectMode && <button onClick={() => onUndo(c)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#999', padding: '4px' }} title="Undo (restore chore)">↩️</button>}{isAdmin && !selectMode && <button onClick={() => setDeleteConfirm({ type: 'single', completion: c })} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#999', padding: '4px' }} title="Delete history">🗑️</button>}</div>
                       </div>
                     </div>
                   ); })}
@@ -962,7 +992,7 @@
       );
     }
 
-    function ManageView({ chores, users, onAddChore, onAddBulkChores, onDeleteChore, onNavigate, onLogout, templates, onSaveTemplate, onDeleteTemplate, onUpdateTemplate, darkMode }) {
+    function ManageView({ chores, users, onAddChore, onAddBulkChores, onDeleteChore, onDeleteChores, onNavigate, onLogout, templates, onSaveTemplate, onDeleteTemplate, onUpdateTemplate, darkMode }) {
       const styles = getStyles(darkMode);
       const [showForm, setShowForm] = useState(false);
       const [showTemplates, setShowTemplates] = useState(false);
@@ -977,9 +1007,24 @@
       const [batchAssignments, setBatchAssignments] = useState([]);
       const [batchOptional, setBatchOptional] = useState([]);
       const [excludedKids, setExcludedKids] = useState([]);
+      // Bulk delete chores state
+      const [selectMode, setSelectMode] = useState(false);
+      const [selectedChoreIds, setSelectedChoreIds] = useState([]);
       const activeChores = chores.filter(c => c.status === 'active');
       const resetForm = () => { setFormData({ type: 'mandatory', description: '', points: '', assignedTo: users[0]?.name, saveAsTemplate: false }); setEditingTemplateId(null); };
-      const handleDeleteConfirm = () => { haptic('medium'); if (deleteConfirm.type === 'chore') onDeleteChore(deleteConfirm.id); else if (deleteConfirm.type === 'template') onDeleteTemplate(deleteConfirm.id); setDeleteConfirm(null); };
+      const toggleChoreSelect = (id) => setSelectedChoreIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+      const exitSelectMode = () => { setSelectMode(false); setSelectedChoreIds([]); };
+      const handleDeleteConfirm = () => {
+        haptic('medium');
+        if (deleteConfirm.type === 'chore') onDeleteChore(deleteConfirm.id);
+        else if (deleteConfirm.type === 'template') onDeleteTemplate(deleteConfirm.id);
+        else if (deleteConfirm.type === 'bulk') {
+          onDeleteChores(selectedChoreIds);
+          setSelectedChoreIds([]);
+          setSelectMode(false);
+        }
+        setDeleteConfirm(null);
+      };
       const loadTemplate = (template) => { setFormData({ type: template.type, description: template.description, points: template.points || '', assignedTo: template.assignedTo || users[0]?.name, saveAsTemplate: false }); setEditingTemplateId(template.id); setShowForm(true); setShowTemplates(false); };
       const handleSubmit = () => { if (!formData.description.trim()) return; haptic('success'); const choreData = { type: formData.type, description: formData.description, points: formData.type === 'optional' ? (parseInt(formData.points) || 0) : 0, assignedTo: formData.type === 'optional' ? null : formData.assignedTo }; onAddChore(choreData); if (formData.saveAsTemplate) { const templateData = { ...choreData, assignmentMode: formData.type === 'mandatory' ? 'random' : 'optional' }; if (editingTemplateId) onUpdateTemplate(editingTemplateId, templateData); else onSaveTemplate(templateData); } resetForm(); setShowForm(false); };
       const handleBulkAssign = (selectedUsers) => { if (!formData.description.trim() || selectedUsers.length === 0) return; haptic('success'); const choresData = selectedUsers.map(userName => ({ type: 'mandatory', description: formData.description, points: 0, assignedTo: userName })); onAddBulkChores(choresData); if (formData.saveAsTemplate) onSaveTemplate({ type: 'mandatory', description: formData.description, points: 0, assignedTo: null, assignmentMode: 'random' }); resetForm(); setShowForm(false); setShowMultiPicker(false); };
@@ -1066,7 +1111,7 @@
       return (
         <div style={{ ...styles.container, padding: '16px', paddingBottom: '100px', display: 'flex', flexDirection: 'column' }}>
           <AppHeader darkMode={darkMode} />
-          {deleteConfirm && <ConfirmModal message={deleteConfirm.type === 'chore' ? 'Delete this chore?' : 'Delete this saved chore?'} onConfirm={handleDeleteConfirm} onCancel={() => setDeleteConfirm(null)} darkMode={darkMode} />}
+          {deleteConfirm && <ConfirmModal message={deleteConfirm.type === 'chore' ? 'Delete this chore?' : deleteConfirm.type === 'bulk' ? `Delete ${selectedChoreIds.length} chore${selectedChoreIds.length > 1 ? 's' : ''}?` : 'Delete this saved chore?'} onConfirm={handleDeleteConfirm} onCancel={() => setDeleteConfirm(null)} darkMode={darkMode} />}
           {showMultiPicker && <MultiUserPickerModal users={users} onConfirm={handleBulkAssign} onCancel={() => setShowMultiPicker(false)} darkMode={darkMode} />}
           {showExclusionModal && <KidExclusionModal users={users} excludeCount={users.length - templates.filter(t => batchSelected.includes(t.id) && getTemplateMode(t) === 'random').length} onConfirm={(excluded) => generateAssignments(excluded)} onCancel={() => setShowExclusionModal(false)} darkMode={darkMode} />}
           {showPreviewModal && <AssignmentPreviewModal assignments={batchAssignments} optionalChores={batchOptional} users={users} onShuffle={() => generateAssignments(excludedKids)} onConfirm={handleConfirmBatch} onCancel={() => setShowPreviewModal(false)} darkMode={darkMode} />}
@@ -1143,12 +1188,27 @@
             </div>
           )}
           <section>
-            <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}>Active Chores ({activeChores.length})</h2>
-            {activeChores.length > 0 ? activeChores.map(chore => { const user = getUser(chore.assignedTo); return (
-              <div key={chore.id} style={{ ...styles.card, borderLeft: `4px solid ${chore.type === 'mandatory' ? '#FF6B6B' : '#4ECDC4'}`, marginBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h2 style={{ fontSize: '16px', fontWeight: '600', margin: 0 }}>Active Chores ({activeChores.length})</h2>
+              {activeChores.length > 0 && (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {selectMode ? (
+                    <>
+                      <button onClick={exitSelectMode} style={{ ...styles.button, padding: '6px 12px', fontSize: '12px', background: darkMode ? '#333' : '#f0f0f0', color: darkMode ? '#ccc' : '#666' }}>Cancel</button>
+                      {selectedChoreIds.length > 0 && <button onClick={() => setDeleteConfirm({ type: 'bulk' })} style={{ ...styles.button, padding: '6px 12px', fontSize: '12px', background: '#FF6B6B', color: 'white' }}>Delete ({selectedChoreIds.length})</button>}
+                    </>
+                  ) : (
+                    <button onClick={() => setSelectMode(true)} style={{ ...styles.button, padding: '6px 12px', fontSize: '12px', background: darkMode ? '#333' : '#f0f0f0', color: darkMode ? '#ccc' : '#666' }}>Select</button>
+                  )}
+                </div>
+              )}
+            </div>
+            {activeChores.length > 0 ? activeChores.map(chore => { const user = getUser(chore.assignedTo); const isSelected = selectedChoreIds.includes(chore.id); return (
+              <div key={chore.id} onClick={selectMode ? () => toggleChoreSelect(chore.id) : undefined} style={{ ...styles.card, borderLeft: `4px solid ${chore.type === 'mandatory' ? '#FF6B6B' : '#4ECDC4'}`, marginBottom: '12px', cursor: selectMode ? 'pointer' : 'default', border: isSelected ? '2px solid #45B7D1' : undefined, background: isSelected ? (darkMode ? '#333' : '#e8f4f8') : undefined }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div><div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}><span style={{ ...styles.tag, background: chore.type === 'mandatory' ? '#FF6B6B20' : '#4ECDC420', color: chore.type === 'mandatory' ? '#FF6B6B' : '#4ECDC4' }}>{chore.type === 'mandatory' ? '📌 Required' : '⭐ Optional'}</span>{user && <span style={{ ...styles.tag, background: `${user.color}22`, color: user.color }}>{user.emoji} {user.name}</span>}</div><div style={{ fontWeight: '600' }}>{chore.description}</div>{chore.points > 0 && <div style={{ fontSize: '13px', color: '#999', marginTop: '4px' }}>{chore.points} points</div>}</div>
-                  <button onClick={() => setDeleteConfirm({ type: 'chore', id: chore.id })} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '8px' }}>🗑️</button>
+                  {selectMode && <input type="checkbox" checked={isSelected} onChange={() => toggleChoreSelect(chore.id)} style={{ width: '20px', height: '20px', marginRight: '12px', cursor: 'pointer', flexShrink: 0 }} onClick={(e) => e.stopPropagation()} />}
+                  <div style={{ flex: 1 }}><div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}><span style={{ ...styles.tag, background: chore.type === 'mandatory' ? '#FF6B6B20' : '#4ECDC420', color: chore.type === 'mandatory' ? '#FF6B6B' : '#4ECDC4' }}>{chore.type === 'mandatory' ? '📌 Required' : '⭐ Optional'}</span>{user && <span style={{ ...styles.tag, background: `${user.color}22`, color: user.color }}>{user.emoji} {user.name}</span>}</div><div style={{ fontWeight: '600' }}>{chore.description}</div>{chore.points > 0 && <div style={{ fontSize: '13px', color: '#999', marginTop: '4px' }}>{chore.points} points</div>}</div>
+                  {!selectMode && <button onClick={() => setDeleteConfirm({ type: 'chore', id: chore.id })} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '8px' }}>🗑️</button>}
                 </div>
               </div>
             ); }) : <div style={{ textAlign: 'center', padding: '40px 20px', color: '#999' }}>No active chores. Add one above!</div>}
@@ -1388,7 +1448,21 @@
           haptic('medium');
         }
       };
-      
+
+      const handleDeleteCompletion = async (completion) => {
+        setCompletions(prev => prev.filter(c => c.id !== completion.id));
+        await api.deleteCompletion(completion.id);
+        haptic('medium');
+      };
+
+      const handleDeleteCompletions = async (completionIds) => {
+        setCompletions(prev => prev.filter(c => !completionIds.includes(c.id)));
+        for (const id of completionIds) {
+          await api.deleteCompletion(id);
+        }
+        haptic('medium');
+      };
+
       const handleEditChore = (chore) => setEditingChore(chore);
       
       const handleSaveEdit = async (updatedChore) => { 
@@ -1414,7 +1488,15 @@
         setChores(prev => prev.filter(c => c.id !== choreId));
         await api.deleteChore(choreId);
       };
-      
+
+      const handleDeleteChores = async (choreIds) => {
+        setChores(prev => prev.filter(c => !choreIds.includes(c.id)));
+        for (const id of choreIds) {
+          await api.deleteChore(id);
+        }
+        haptic('medium');
+      };
+
       const handleSaveTemplate = async (templateData) => {
         const newTemplate = { id: generateId(), ...templateData };
         setTemplates(prev => [...prev, newTemplate]);
@@ -1473,8 +1555,8 @@
         <>
           {editingChore && <EditChoreModal chore={editingChore} users={users} onSave={handleSaveEdit} onCancel={() => setEditingChore(null)} darkMode={darkMode} />}
           {undoCompletion && view === 'chores' && <UndoToast completion={undoCompletion.completion} onUndo={handleUndoFromToast} onDismiss={() => setUndoCompletion(null)} darkMode={darkMode} />}
-          {view === 'history' && <HistoryView completions={completions} users={users} onNavigate={setView} onUndo={handleUndo} onLogout={handleLogout} isAdmin={isAdmin} darkMode={darkMode} weekOffset={weekOffset} onWeekChange={setWeekOffset} />}
-          {view === 'manage' && isAdmin && <ManageView chores={chores} users={users} onAddChore={handleAddChore} onAddBulkChores={handleAddBulkChores} onDeleteChore={handleDeleteChore} onNavigate={setView} onLogout={handleLogout} templates={templates} onSaveTemplate={handleSaveTemplate} onDeleteTemplate={handleDeleteTemplate} onUpdateTemplate={handleUpdateTemplate} darkMode={darkMode} />}
+          {view === 'history' && <HistoryView completions={completions} users={users} onNavigate={setView} onUndo={handleUndo} onDelete={handleDeleteCompletion} onDeleteMultiple={handleDeleteCompletions} onLogout={handleLogout} isAdmin={isAdmin} darkMode={darkMode} weekOffset={weekOffset} onWeekChange={setWeekOffset} />}
+          {view === 'manage' && isAdmin && <ManageView chores={chores} users={users} onAddChore={handleAddChore} onAddBulkChores={handleAddBulkChores} onDeleteChore={handleDeleteChore} onDeleteChores={handleDeleteChores} onNavigate={setView} onLogout={handleLogout} templates={templates} onSaveTemplate={handleSaveTemplate} onDeleteTemplate={handleDeleteTemplate} onUpdateTemplate={handleUpdateTemplate} darkMode={darkMode} />}
           {view === 'settings' && isAdmin && <SettingsView users={users} onSaveUsers={handleSaveUsers} darkMode={darkMode} onToggleDarkMode={() => setDarkMode(d => !d)} onNavigate={setView} onLogout={handleLogout} />}
           {view === 'chores' && <ChoreView currentUser={currentUser} isAdmin={isAdmin} chores={chores} completions={completions} users={users} onComplete={handleComplete} onEdit={handleEditChore} onNavigate={setView} onLogout={handleLogout} onSaveUser={handleSaveUser} darkMode={darkMode} weekOffset={weekOffset} onWeekChange={setWeekOffset} />}
         </>
