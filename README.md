@@ -156,4 +156,11 @@ The app features:
 
 ## License
 
-MIT License - Jordan Family 2026
+This project is licensed under **CC BY-NC 4.0** (Creative Commons Attribution-NonCommercial 4.0 International).
+
+- You may use, share, and adapt this work for **non-commercial purposes** with attribution
+- **Commercial use is prohibited** without explicit permission from the copyright holder
+
+See [LICENSE](LICENSE) for full terms.
+
+Copyright (c) 2026 Jordan Family
