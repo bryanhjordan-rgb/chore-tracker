@@ -31,6 +31,7 @@ A list of planned features and improvements for the Chore Tracker app.
 - [ ] **Chore notes** - Allow adding notes or photos to completed chores
 
 ### Admin Improvements
+- [ ] **Delete completed chores** - Add delete button for completed chores in admin History view (in addition to undo)
 - [ ] **Bulk delete chores** - Select multiple chores to delete at once
 - [ ] **Chore categories** - Organize chores by room or type
 - [ ] **Export data** - Download history as CSV/PDF
