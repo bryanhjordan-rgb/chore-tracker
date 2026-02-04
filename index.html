@@ -279,7 +279,7 @@
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', maxWidth: '320px', width: '100%', marginBottom: '24px' }}>
             {users.map((user) => (
               <button key={user.name} onClick={() => { haptic('medium'); onSelect(user.name); }} style={{ ...styles.button, background: user.color, color: 'white', padding: '16px 16px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', position: 'relative', overflow: 'hidden' }}>
-                {leader === user.name && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, background: 'rgba(255,255,255,0.25)', padding: '2px 0', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}><span style={{ position: 'relative', display: 'inline-block' }}><span>👑</span><span style={{ position: 'absolute', top: '6px', left: '50%', transform: 'translateX(-50%)', fontSize: '14px' }}>🕶️</span></span> Leader</div>}
+                {leader === user.name && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, background: 'rgba(255,255,255,0.25)', padding: '2px 0', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}><CrownWithSunglasses size={20} /> Leader</div>}
                 <span style={{ fontSize: '32px', marginTop: leader === user.name ? '16px' : '0' }}>{user.emoji}</span>
                 <span style={{ fontWeight: '600' }}>{user.name}</span>
                 <span style={{ fontSize: '12px', opacity: 0.85 }}>{weeklyScores[user.name] || 0} pts</span>
@@ -680,6 +680,40 @@
       );
     }
 
+    function CrownWithSunglasses({ size = 32 }) {
+      return (
+        <svg width={size} height={size} viewBox="0 0 64 64" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+          {/* Crown */}
+          <path d="M8 48 L8 28 L18 38 L32 20 L46 38 L56 28 L56 48 Z" fill="url(#crownGold)" stroke="#B8860B" strokeWidth="1"/>
+          <ellipse cx="32" cy="48" rx="24" ry="6" fill="url(#crownGold)" stroke="#B8860B" strokeWidth="1"/>
+          {/* Crown jewel */}
+          <ellipse cx="32" cy="42" rx="4" ry="5" fill="#4ECDC4" stroke="#3AA89E" strokeWidth="1"/>
+          {/* Crown tips */}
+          <circle cx="8" cy="28" r="3" fill="url(#crownGold)" stroke="#B8860B" strokeWidth="1"/>
+          <circle cx="18" cy="38" r="3" fill="url(#crownGold)" stroke="#B8860B" strokeWidth="1"/>
+          <circle cx="32" cy="20" r="3" fill="url(#crownGold)" stroke="#B8860B" strokeWidth="1"/>
+          <circle cx="46" cy="38" r="3" fill="url(#crownGold)" stroke="#B8860B" strokeWidth="1"/>
+          <circle cx="56" cy="28" r="3" fill="url(#crownGold)" stroke="#B8860B" strokeWidth="1"/>
+          {/* Sunglasses - positioned over crown */}
+          <rect x="4" y="30" width="56" height="3" rx="1.5" fill="#222"/>
+          <path d="M6 33 Q6 44 18 44 Q30 44 30 33 Z" fill="#222"/>
+          <path d="M34 33 Q34 44 46 44 Q58 44 58 33 Z" fill="#222"/>
+          <rect x="30" y="34" width="4" height="2" rx="1" fill="#222"/>
+          {/* Lens shine */}
+          <ellipse cx="14" cy="37" rx="5" ry="3" fill="#FFF" opacity="0.15"/>
+          <ellipse cx="50" cy="37" rx="5" ry="3" fill="#FFF" opacity="0.15"/>
+          {/* Gradient definitions */}
+          <defs>
+            <linearGradient id="crownGold" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#FFD700"/>
+              <stop offset="50%" stopColor="#DAA520"/>
+              <stop offset="100%" stopColor="#B8860B"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      );
+    }
+
     function Scoreboard({ completions, users, weekOffset = 0, onWeekChange, darkMode }) {
       const styles = getStyles(darkMode);
       const baseDate = new Date();
@@ -707,13 +741,9 @@
               <div key={s.name} style={{ background: `${s.color}22`, border: `2px solid ${s.color}44`, borderRadius: '12px', padding: '12px 8px', textAlign: 'center' }}>
                 <div style={{ fontSize: '20px', position: 'relative', display: 'inline-block' }}>
                   {i === 0 && s.points > 0 && (
-                    <span style={{ position: 'absolute', top: '-2px', left: '50%', transform: 'translateX(-50%)', zIndex: 2 }}>👑</span>
+                    <div style={{ marginBottom: '4px' }}><CrownWithSunglasses size={28} /></div>
                   )}
-                  {i === 0 && s.points > 0 && (
-                    <span style={{ position: 'absolute', top: '6px', left: '50%', transform: 'translateX(-50%)', zIndex: 3, fontSize: '18px' }}>🕶️</span>
-                  )}
-                  <span style={{ visibility: i === 0 && s.points > 0 ? 'hidden' : 'visible' }}>{s.emoji}</span>
-                  {i === 0 && s.points > 0 && <span style={{ marginTop: '14px', display: 'block' }}>{s.emoji}</span>}
+                  <span>{s.emoji}</span>
                 </div>
                 <div style={{ fontSize: '12px', fontWeight: '600', marginTop: '4px' }}>{s.name}</div>
                 <div style={{ fontSize: '24px', fontWeight: '700' }}>{s.points}</div>
@@ -724,11 +754,12 @@
       );
     }
 
-    function ChoreCard({ chore, currentUser, users, onComplete, onEdit, isAdmin, darkMode }) {
+    function ChoreCard({ chore, currentUser, users, onComplete, onEdit, isAdmin, darkMode, optionalLocked }) {
       const styles = getStyles(darkMode);
       const [showPicker, setShowPicker] = useState(false);
       const [completing, setCompleting] = useState(false);
-      const canComplete = isAdmin || chore.type === 'optional' || chore.assignedTo === currentUser;
+      const isLockedOptional = !isAdmin && chore.type === 'optional' && optionalLocked;
+      const canComplete = !isLockedOptional && (isAdmin || chore.type === 'optional' || chore.assignedTo === currentUser);
       const isMandatory = chore.type === 'mandatory';
       const user = users.find(u => u.name === chore.assignedTo);
       const handleCompleteClick = () => {
@@ -745,7 +776,10 @@
         setTimeout(() => onComplete(chore, selectedUser === 'parent' ? null : selectedUser), 350);
       };
       return (
-        <div className={completing ? 'chore-completing' : ''} style={{ ...styles.card, borderLeft: `4px solid ${isMandatory ? '#FF6B6B' : '#4ECDC4'}`, marginBottom: '12px' }}>
+        <div className={completing ? 'chore-completing' : ''} style={{ ...styles.card, borderLeft: `4px solid ${isMandatory ? '#FF6B6B' : '#4ECDC4'}`, marginBottom: '12px', position: 'relative', opacity: isLockedOptional ? 0.6 : 1 }}>
+          {isLockedOptional && (
+            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '32px', zIndex: 10, pointerEvents: 'none' }}>🔒</div>
+          )}
           {showPicker && <UserPickerModal chore={chore} users={users} onSelect={handlePickerSelect} onCancel={() => setShowPicker(false)} darkMode={darkMode} />}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
             <div style={{ flex: 1 }}>
@@ -762,6 +796,8 @@
           </div>
           {canComplete ? (
             <button onClick={handleCompleteClick} style={{ ...styles.button, width: '100%', marginTop: '12px', background: isMandatory ? '#FF6B6B15' : '#4ECDC415', color: isMandatory ? '#FF6B6B' : '#4ECDC4' }}>✓ Mark Complete</button>
+          ) : isLockedOptional ? (
+            <div style={{ marginTop: '12px', padding: '10px', background: darkMode ? '#2a2a3e' : '#f5f5f5', borderRadius: '8px', textAlign: 'center', color: '#999', fontSize: '14px' }}>Complete your required chores first</div>
           ) : (
             <div style={{ marginTop: '12px', padding: '10px', background: darkMode ? '#2a2a3e' : '#f5f5f5', borderRadius: '8px', textAlign: 'center', color: '#999', fontSize: '14px' }}>Assigned to {chore.assignedTo}</div>
           )}
@@ -790,6 +826,7 @@
       const filteredChores = activeChores.filter(c => { if (filter === 'all') return true; if (c.type === 'optional') return true; return c.assignedTo === filter; });
       const mandatoryChores = filteredChores.filter(c => c.type === 'mandatory');
       const optionalChores = filteredChores.filter(c => c.type === 'optional');
+      const hasPendingMandatory = !isAdmin && activeChores.some(c => c.type === 'mandatory' && c.assignedTo === currentUser);
       return (
         <div style={{ ...styles.container, padding: '16px', paddingBottom: '100px', display: 'flex', flexDirection: 'column' }}>
           {showCustomize && currentUserObj && <UserCustomizeModal user={currentUserObj} onSave={(updatedUser) => { onSaveUser(updatedUser); setShowCustomize(false); }} onCancel={() => setShowCustomize(false)} darkMode={darkMode} />}
@@ -816,8 +853,8 @@
             )}
             {optionalChores.length > 0 && (
               <section style={{ marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}><span style={{ color: '#4ECDC4' }}>⭐</span> Optional Chores</h2>
-                {optionalChores.map(chore => <ChoreCard key={chore.id} chore={chore} currentUser={currentUser} users={users} isAdmin={isAdmin} onComplete={onComplete} onEdit={onEdit} darkMode={darkMode} />)}
+                <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}><span style={{ color: '#4ECDC4' }}>⭐</span> Optional Chores {hasPendingMandatory && <span style={{ fontSize: '12px', color: '#999', fontWeight: '400' }}>🔒 Complete required chores to unlock</span>}</h2>
+                {optionalChores.map(chore => <ChoreCard key={chore.id} chore={chore} currentUser={currentUser} users={users} isAdmin={isAdmin} onComplete={onComplete} onEdit={onEdit} darkMode={darkMode} optionalLocked={hasPendingMandatory} />)}
               </section>
             )}
             {filteredChores.length === 0 && (
