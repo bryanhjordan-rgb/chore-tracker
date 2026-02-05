@@ -26,12 +26,42 @@
       50% { transform: scale(1.2) rotate(0deg); opacity: 1; }
       100% { transform: scale(1) rotate(0deg); opacity: 1; }
     }
+    @keyframes hamsterFall {
+      0% { transform: translateY(-15vh) rotate(0deg); opacity: 0; }
+      10% { opacity: 1; }
+      100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+    }
+    @keyframes hamsterSway {
+      0% { transform: translateX(0); }
+      50% { transform: translateX(18px); }
+      100% { transform: translateX(-14px); }
+    }
     .chore-completing {
       animation: choreComplete 0.4s ease-out forwards;
       pointer-events: none;
     }
     .checkmark-animation {
       animation: checkmark 0.3s ease-out forwards;
+    }
+    .hamster-shower {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      pointer-events: auto;
+    }
+    .hamster {
+      position: absolute;
+      top: -10vh;
+      animation-name: hamsterFall;
+      animation-timing-function: linear;
+      animation-fill-mode: forwards;
+      pointer-events: none;
+      user-select: none;
+    }
+    .hamster-sway {
+      animation-name: hamsterSway;
+      animation-iteration-count: infinite;
+      animation-timing-function: ease-in-out;
     }
   </style>
 </head>
@@ -222,6 +252,123 @@
 
     const formatDateShort = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const generateId = () => Math.random().toString(36).substr(2, 9);
+    const getDayKey = (date) => {
+      const d = new Date(date);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    const parseDayKey = (key) => {
+      const [year, month, day] = key.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    };
+    const addDays = (date, delta) => {
+      const d = new Date(date);
+      d.setDate(d.getDate() + delta);
+      return d;
+    };
+    const isNextDay = (prevKey, nextKey) => getDayKey(addDays(parseDayKey(prevKey), 1)) === nextKey;
+
+    const STREAK_WEEK_EMOJIS = ['🔥', '🎉', '🏆', '👑'];
+    const getStreakBadgeText = (streakLength) => {
+      if (!streakLength || streakLength < 1) return null;
+      if (streakLength >= 28) return '🏅';
+      const weekIndex = Math.floor((streakLength - 1) / 7);
+      const dayInWeek = ((streakLength - 1) % 7) + 1;
+      const emoji = STREAK_WEEK_EMOJIS[Math.min(weekIndex, STREAK_WEEK_EMOJIS.length - 1)];
+      return dayInWeek === 1 ? emoji : `${emoji}x${dayInWeek}`;
+    };
+
+    const getStreakStatsFromCounts = (dayCounts) => {
+      const dayKeys = Object.keys(dayCounts);
+      if (dayKeys.length === 0) return { currentStreak: 0, maxStreak: 0 };
+      const sortedKeys = dayKeys.sort((a, b) => parseDayKey(a) - parseDayKey(b));
+      let maxStreak = 0;
+
+      let runKeys = [];
+      const finalizeRun = () => {
+        if (runKeys.length === 0) return;
+        const counts = runKeys.map(key => dayCounts[key]);
+        const firstEligibleIndex = counts.findIndex(count => count >= 2);
+        if (firstEligibleIndex !== -1) {
+          const length = counts.length - firstEligibleIndex;
+          if (length >= 2) {
+            maxStreak = Math.max(maxStreak, length);
+          }
+        }
+        runKeys = [];
+      };
+
+      sortedKeys.forEach((key) => {
+        if (runKeys.length === 0) {
+          runKeys.push(key);
+          return;
+        }
+        const lastKey = runKeys[runKeys.length - 1];
+        if (isNextDay(lastKey, key)) {
+          runKeys.push(key);
+        } else {
+          finalizeRun();
+          runKeys.push(key);
+        }
+      });
+      finalizeRun();
+
+      const todayKey = getDayKey(new Date());
+      if (!dayCounts[todayKey] || dayCounts[todayKey] < 1) {
+        return { currentStreak: 0, maxStreak };
+      }
+
+      const currentRunKeys = [todayKey];
+      let cursorKey = todayKey;
+      while (true) {
+        const prevKey = getDayKey(addDays(parseDayKey(cursorKey), -1));
+        if (!dayCounts[prevKey]) break;
+        currentRunKeys.unshift(prevKey);
+        cursorKey = prevKey;
+      }
+      const currentCounts = currentRunKeys.map(key => dayCounts[key]);
+      const currentEligibleIndex = currentCounts.findIndex(count => count >= 2);
+      const currentStreakRaw = currentEligibleIndex === -1 ? 0 : currentCounts.length - currentEligibleIndex;
+      const currentStreak = currentStreakRaw >= 2 ? currentStreakRaw : 0;
+
+      return { currentStreak, maxStreak };
+    };
+
+    const buildStreaksByUser = (completions, users) => {
+      const result = {};
+      users.forEach((user) => {
+        const dayCounts = {};
+        completions.forEach((completion) => {
+          if (completion.completedBy !== user.name) return;
+          const key = getDayKey(completion.completedAt);
+          dayCounts[key] = (dayCounts[key] || 0) + 1;
+        });
+        const stats = getStreakStatsFromCounts(dayCounts);
+        result[user.name] = {
+          currentStreak: stats.currentStreak,
+          maxStreak: stats.maxStreak,
+          hasMedal: stats.maxStreak >= 28
+        };
+      });
+      return result;
+    };
+
+    const buildHamsterBurst = (count = 24) => (
+      Array.from({ length: count }, (_, index) => ({
+        id: `hamster-${index}-${Math.random().toString(36).slice(2, 7)}`,
+        left: Math.random() * 100,
+        delay: Math.random() * 0.6,
+        duration: 2.6 + Math.random() * 1.6,
+        size: 20 + Math.random() * 16,
+        swayDuration: 1.2 + Math.random() * 1.4,
+        swayDelay: Math.random() * 0.4
+      }))
+    );
+    const HAMSTER_BONUS = 1000;
+    const HAMSTER_CHANCE = 0.1;
+    const HAMSTER_SHOWER_DURATION = 4000;
 
     const getStyles = (dark) => ({
       container: { minHeight: '100vh', background: dark ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' : 'linear-gradient(135deg, #45B7D110 0%, #ffffff 50%, #4ECDC410 100%)', fontFamily: "'Segoe UI', system-ui, sans-serif", color: dark ? '#e0e0e0' : '#2C3E50' },
@@ -281,7 +428,82 @@
       );
     }
 
-    function UserSelect({ onSelect, users, completions, darkMode }) {
+    function StreakBadge({ text, darkMode }) {
+      if (!text) return null;
+      return (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '8px',
+            right: '8px',
+            padding: '2px 6px',
+            borderRadius: '10px',
+            fontSize: '11px',
+            fontWeight: '700',
+            background: darkMode ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.9)',
+            color: darkMode ? '#fff' : '#2C3E50',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+          }}
+        >
+          {text}
+        </div>
+      );
+    }
+
+    function HamsterShower({ shower, onClaim }) {
+      if (!shower) return null;
+      return (
+        <div
+          className="hamster-shower"
+          onClick={onClaim}
+          style={{
+            cursor: 'pointer',
+            background: 'rgba(0,0,0,0.25)',
+            overflow: 'hidden'
+          }}
+        >
+          {shower.hamsters.map((hamster) => (
+            <div
+              key={hamster.id}
+              className="hamster"
+              style={{
+                left: `${hamster.left}%`,
+                fontSize: `${hamster.size}px`,
+                animationDuration: `${hamster.duration}s`,
+                animationDelay: `${hamster.delay}s`
+              }}
+            >
+              <div
+                className="hamster-sway"
+                style={{
+                  animationDuration: `${hamster.swayDuration}s`,
+                  animationDelay: `${hamster.swayDelay}s`
+                }}
+              >
+                🐹
+              </div>
+            </div>
+          ))}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '24px',
+              left: 0,
+              right: 0,
+              textAlign: 'center',
+              color: 'white',
+              fontSize: '14px',
+              fontWeight: '700',
+              textShadow: '0 2px 10px rgba(0,0,0,0.45)'
+            }}
+          >
+            {shower.rewarded ? 'Fun points unlocked!' : 'Tap the hamsters for +1000 🐹'}
+          </div>
+        </div>
+      );
+    }
+
+    function UserSelect({ onSelect, users, completions, darkMode, streaksByUser, funPointsByUser }) {
       const styles = getStyles(darkMode);
       const { start, end } = getWeekBounds(new Date());
       const weeklyScores = useMemo(() => {
@@ -291,9 +513,9 @@
         return scores;
       }, [completions, users, start, end]);
       const leader = useMemo(() => {
-        const sorted = users.map(u => ({ name: u.name, points: weeklyScores[u.name] || 0 })).sort((a, b) => b.points - a.points);
+        const sorted = users.map(u => ({ name: u.name, points: (weeklyScores[u.name] || 0) + (funPointsByUser?.[u.name] || 0) })).sort((a, b) => b.points - a.points);
         return sorted[0]?.points > 0 ? sorted[0].name : null;
-      }, [users, weeklyScores]);
+      }, [users, weeklyScores, funPointsByUser]);
       return (
         <div style={{ ...styles.container, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', position: 'relative' }}>
           <div style={{ textAlign: 'center', marginBottom: '40px' }}>
@@ -308,8 +530,12 @@
               <button key={user.name} onClick={() => { haptic('medium'); onSelect(user.name); }} style={{ ...styles.button, background: user.color, color: 'white', padding: '16px 16px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', position: 'relative', overflow: 'hidden' }}>
                 {leader === user.name && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, background: 'rgba(255,255,255,0.25)', padding: '2px 0', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}><CrownWithSunglasses size={20} /> Leader</div>}
                 <span style={{ fontSize: '32px', marginTop: leader === user.name ? '16px' : '0' }}>{user.emoji}</span>
-                <span style={{ fontWeight: '600' }}>{user.name}</span>
-                <span style={{ fontSize: '12px', opacity: 0.85 }}>{weeklyScores[user.name] || 0} pts</span>
+                <span style={{ fontWeight: '600' }}>{user.name}{streaksByUser?.[user.name]?.hasMedal ? ' 🏅' : ''}</span>
+                <span style={{ fontSize: '12px', opacity: 0.85 }}>
+                  {(weeklyScores[user.name] || 0) + (funPointsByUser?.[user.name] || 0)} pts
+                  {funPointsByUser?.[user.name] > 0 && <span style={{ marginLeft: '4px', fontSize: '11px' }}>+{funPointsByUser[user.name]} 🐹</span>}
+                </span>
+                <StreakBadge text={getStreakBadgeText(streaksByUser?.[user.name]?.currentStreak || 0)} darkMode={darkMode} />
               </button>
             ))}
           </div>
@@ -741,18 +967,21 @@
       );
     }
 
-    function Scoreboard({ completions, users, weekOffset = 0, onWeekChange, darkMode, selectedUser = 'all', onSelectUser }) {
+    function Scoreboard({ completions, users, weekOffset = 0, onWeekChange, darkMode, selectedUser = 'all', onSelectUser, streaksByUser, funPointsByUser }) {
       const styles = getStyles(darkMode);
       const baseDate = new Date();
       baseDate.setDate(baseDate.getDate() + (weekOffset * 7));
       const { start, end } = getWeekBounds(baseDate);
+      const isCurrentWeek = weekOffset === 0;
       const weeklyScores = useMemo(() => {
         const scores = {};
         users.forEach(u => scores[u.name] = 0);
         completions.filter(c => { const d = new Date(c.completedAt); return d >= start && d <= end; }).forEach(c => { if (scores.hasOwnProperty(c.completedBy)) scores[c.completedBy] += c.points || 0; });
-        return users.map(u => ({ ...u, points: scores[u.name] || 0 })).sort((a, b) => b.points - a.points);
-      }, [completions, users, start, end]);
-      const isCurrentWeek = weekOffset === 0;
+        return users.map(u => {
+          const funPoints = isCurrentWeek ? (funPointsByUser?.[u.name] || 0) : 0;
+          return { ...u, points: scores[u.name] || 0, funPoints };
+        }).sort((a, b) => (b.points + b.funPoints) - (a.points + a.funPoints));
+      }, [completions, users, start, end, funPointsByUser, isCurrentWeek]);
       return (
         <div style={styles.card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -792,17 +1021,22 @@
                   textAlign: 'center',
                   cursor: onSelectUser ? 'pointer' : 'default',
                   transform: selectedUser === s.name ? 'translateY(-2px)' : 'none',
-                  boxShadow: selectedUser === s.name ? (darkMode ? '0 6px 16px rgba(0,0,0,0.35)' : '0 6px 16px rgba(0,0,0,0.12)') : 'none'
+                  boxShadow: selectedUser === s.name ? (darkMode ? '0 6px 16px rgba(0,0,0,0.35)' : '0 6px 16px rgba(0,0,0,0.12)') : 'none',
+                  position: 'relative'
                 }}
               >
                 <div style={{ fontSize: '20px', position: 'relative', display: 'inline-block' }}>
-                  {i === 0 && s.points > 0 && (
+                  {i === 0 && (s.points + (s.funPoints || 0)) > 0 && (
                     <div style={{ marginBottom: '4px' }}><CrownWithSunglasses size={28} /></div>
                   )}
                   <span>{s.emoji}</span>
                 </div>
-                <div style={{ fontSize: '12px', fontWeight: '600', marginTop: '4px' }}>{s.name}</div>
-                <div style={{ fontSize: '24px', fontWeight: '700' }}>{s.points}</div>
+                <div style={{ fontSize: '12px', fontWeight: '600', marginTop: '4px' }}>{s.name}{streaksByUser?.[s.name]?.hasMedal ? ' 🏅' : ''}</div>
+                <div style={{ fontSize: '24px', fontWeight: '700', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                  <span>{s.points + (s.funPoints || 0)}</span>
+                  {s.funPoints > 0 && <span style={{ fontSize: '10px', fontWeight: '600', color: darkMode ? '#F9E29C' : '#B97800' }}>+{s.funPoints} 🐹</span>}
+                </div>
+                <StreakBadge text={getStreakBadgeText(streaksByUser?.[s.name]?.currentStreak || 0)} darkMode={darkMode} />
               </div>
             ))}
           </div>
@@ -873,12 +1107,13 @@
       );
     }
 
-    function ChoreView({ currentUser, isAdmin, chores, completions, users, onComplete, onEdit, onNavigate, onLogout, onSaveUser, darkMode, weekOffset, onWeekChange }) {
+    function ChoreView({ currentUser, isAdmin, chores, completions, users, onComplete, onEdit, onNavigate, onLogout, onSaveUser, darkMode, weekOffset, onWeekChange, streaksByUser, funPointsByUser }) {
       const styles = getStyles(darkMode);
       const [filter, setFilter] = useState(isAdmin ? 'all' : currentUser);
       const [showCustomize, setShowCustomize] = useState(false);
       const currentUserObj = users.find(u => u.name === currentUser);
       const selectedFilterUser = users.find(u => u.name === filter);
+      const currentUserHasMedal = streaksByUser?.[currentUser]?.hasMedal;
       const activeChores = chores.filter(c => c.status === 'active');
       const filteredChores = activeChores.filter(c => { if (filter === 'all') return true; if (c.type === 'optional') return true; return c.assignedTo === filter; });
       const mandatoryChores = filteredChores.filter(c => c.type === 'mandatory');
@@ -899,13 +1134,13 @@
                   <button onClick={() => { haptic('light'); setShowCustomize(true); }} style={{ fontSize: '32px', background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }} title="Customize your profile">{currentUserObj.emoji}</button>
                 )}
                 <div>
-                  <h1 style={{ ...styles.title, fontSize: '22px' }}>{isAdmin ? '⚙️ Admin View' : `Hi, ${currentUser}!`}</h1>
+                  <h1 style={{ ...styles.title, fontSize: '22px' }}>{isAdmin ? '⚙️ Admin View' : `Hi, ${currentUser}${currentUserHasMedal ? ' 🏅' : ''}!`}</h1>
                   <p style={styles.subtitle}>{isAdmin ? 'Manage chores below' : 'Complete chores to earn points'}</p>
                 </div>
               </div>
             </header>
             <UserIdentityCard user={currentUserObj} isAdmin={isAdmin} darkMode={darkMode} onCustomize={() => setShowCustomize(true)} />
-            <Scoreboard completions={completions} users={users} weekOffset={weekOffset} onWeekChange={onWeekChange} darkMode={darkMode} selectedUser={filter} onSelectUser={setFilter} />
+            <Scoreboard completions={completions} users={users} weekOffset={weekOffset} onWeekChange={onWeekChange} darkMode={darkMode} selectedUser={filter} onSelectUser={setFilter} streaksByUser={streaksByUser} funPointsByUser={funPointsByUser} />
             {filter !== 'all' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '-6px 0 14px' }}>
                 <div style={{ ...styles.tag, background: `${selectedFilterUser?.color || '#45B7D1'}22`, color: selectedFilterUser?.color || '#45B7D1', border: `1px solid ${selectedFilterUser?.color || '#45B7D1'}55` }}>
@@ -1396,6 +1631,8 @@
       const [templates, setTemplates] = useState([]);
       const [users, setUsers] = useState(DEFAULT_USERS);
       const [darkMode, setDarkMode] = useState(() => storage.get('darkMode', false));
+      const [funPointsByUser, setFunPointsByUser] = useState({});
+      const [hamsterShower, setHamsterShower] = useState(null);
 
       useEffect(() => {
         const loadData = async () => {
@@ -1414,6 +1651,14 @@
       }, []);
 
       useEffect(() => { storage.set('darkMode', darkMode); }, [darkMode]);
+
+      const streaksByUser = useMemo(() => buildStreaksByUser(completions, users), [completions, users]);
+
+      useEffect(() => {
+        if (!hamsterShower) return;
+        const timer = setTimeout(() => setHamsterShower(null), HAMSTER_SHOWER_DURATION);
+        return () => clearTimeout(timer);
+      }, [hamsterShower?.id]);
 
       // Sync URL hash when view changes
       useEffect(() => {
@@ -1481,6 +1726,36 @@
         setWeekOffset(0);
         window.history.pushState(null, '', '#/chores');
       };
+
+      const triggerHamsterShower = (targetUser) => {
+        if (!targetUser) return;
+        setHamsterShower({
+          id: generateId(),
+          targetUser,
+          hamsters: buildHamsterBurst(),
+          rewarded: false
+        });
+      };
+
+      const handleHamsterClaim = () => {
+        setHamsterShower((prev) => {
+          if (!prev || prev.rewarded) return prev;
+          if (prev.targetUser && users.some(u => u.name === prev.targetUser)) {
+            setFunPointsByUser((current) => ({
+              ...current,
+              [prev.targetUser]: (current[prev.targetUser] || 0) + HAMSTER_BONUS
+            }));
+          }
+          return { ...prev, rewarded: true };
+        });
+      };
+
+      const maybeTriggerHamster = (targetUser) => {
+        if (!targetUser) return;
+        if (Math.random() < HAMSTER_CHANCE) {
+          triggerHamsterShower(targetUser);
+        }
+      };
       
       const handleComplete = async (chore, completedBy) => {
         const completion = { id: generateId(), choreId: chore.id, description: chore.description, points: completedBy === null ? 0 : (chore.points || 0), completedBy: completedBy === null ? 'Parent' : completedBy, completedAt: new Date().toISOString() };
@@ -1489,6 +1764,7 @@
         setChores(prev => prev.map(c => c.id === chore.id ? updatedChore : c));
         setUndoCompletion({ completion, chore });
         haptic('success');
+        maybeTriggerHamster(completedBy === null ? null : completedBy);
         await api.addCompletion(completion);
         await api.updateChore(updatedChore);
       };
@@ -1617,17 +1893,18 @@
         );
       }
 
-      if (!currentUser && !showPinEntry) return <UserSelect onSelect={handleUserSelect} users={users} completions={completions} darkMode={darkMode} />;
+      if (!currentUser && !showPinEntry) return <UserSelect onSelect={handleUserSelect} users={users} completions={completions} darkMode={darkMode} streaksByUser={streaksByUser} funPointsByUser={funPointsByUser} />;
       if (showPinEntry) return <EmojiPattern onSuccess={handlePinSuccess} onCancel={() => setShowPinEntry(false)} darkMode={darkMode} />;
 
       return (
         <>
+          {hamsterShower && <HamsterShower shower={hamsterShower} onClaim={handleHamsterClaim} />}
           {editingChore && <EditChoreModal chore={editingChore} users={users} onSave={handleSaveEdit} onCancel={() => setEditingChore(null)} darkMode={darkMode} />}
           {undoCompletion && view === 'chores' && <UndoToast completion={undoCompletion.completion} onUndo={handleUndoFromToast} onDismiss={() => setUndoCompletion(null)} darkMode={darkMode} />}
           {view === 'history' && <HistoryView completions={completions} users={users} onNavigate={setView} onUndo={handleUndo} onDelete={handleDeleteCompletion} onDeleteMultiple={handleDeleteCompletions} onLogout={handleLogout} isAdmin={isAdmin} darkMode={darkMode} weekOffset={weekOffset} onWeekChange={setWeekOffset} />}
           {view === 'manage' && isAdmin && <ManageView chores={chores} users={users} onAddChore={handleAddChore} onAddBulkChores={handleAddBulkChores} onDeleteChore={handleDeleteChore} onDeleteChores={handleDeleteChores} onNavigate={setView} onLogout={handleLogout} templates={templates} onSaveTemplate={handleSaveTemplate} onDeleteTemplate={handleDeleteTemplate} onUpdateTemplate={handleUpdateTemplate} darkMode={darkMode} />}
           {view === 'settings' && isAdmin && <SettingsView users={users} onSaveUsers={handleSaveUsers} darkMode={darkMode} onToggleDarkMode={() => setDarkMode(d => !d)} onNavigate={setView} onLogout={handleLogout} />}
-          {view === 'chores' && <ChoreView currentUser={currentUser} isAdmin={isAdmin} chores={chores} completions={completions} users={users} onComplete={handleComplete} onEdit={handleEditChore} onNavigate={setView} onLogout={handleLogout} onSaveUser={handleSaveUser} darkMode={darkMode} weekOffset={weekOffset} onWeekChange={setWeekOffset} />}
+          {view === 'chores' && <ChoreView currentUser={currentUser} isAdmin={isAdmin} chores={chores} completions={completions} users={users} onComplete={handleComplete} onEdit={handleEditChore} onNavigate={setView} onLogout={handleLogout} onSaveUser={handleSaveUser} darkMode={darkMode} weekOffset={weekOffset} onWeekChange={setWeekOffset} streaksByUser={streaksByUser} funPointsByUser={funPointsByUser} />}
         </>
       );
     }

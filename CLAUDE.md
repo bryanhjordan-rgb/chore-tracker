@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Do Your Chores, Bruh** is a mobile-friendly single-page web application for families to manage household chores and reward kids for completing tasks. Features a point-based reward system with weekly scoreboards, batch chore assignment, and customizable user profiles.
+**Do Your Chores, Bruh** is a mobile-friendly single-page web application for families to manage household chores and reward kids for completing tasks. Features a point-based reward system with weekly scoreboards, streak badges, a hamster easter egg for fun points, batch chore assignment, and customizable user profiles.
 
 ## Tech Stack
 
@@ -16,7 +16,7 @@
 
 ```
 chore-tracker/
-├── index.html        # Entire application (~1640 lines)
+├── index.html        # Entire application (~1905 lines)
 ├── config.example.js # Configuration template (copy to config.js)
 ├── config.js         # Local configuration (gitignored, user-created)
 ├── icon.svg          # App icon (favicon + iOS home screen)
@@ -74,6 +74,17 @@ const CONFIG = {
 - History view shows completions grouped by day within the selected week
 - Week navigation allows viewing past weeks
 
+### Streak Badges
+- Streaks activate after **two consecutive days**, starting with a **2+ chore day**, then continue with **1+ chore per day** without gaps
+- Weekly badge progression: Week 1 🔥, Week 2 🎉, Week 3 🏆, Week 4 👑 (day 1 shows emoji, day 2+ shows `xN`)
+- A 28-day streak grants a permanent 🏅 next to the kid's name
+- Current streak badges display in the bottom-right corner of user cards and the scoreboard tiles
+
+### Hamster Easter Egg
+- 10% chance on chore completion to trigger a 4-second hamster shower overlay
+- Clicking during the shower grants **+1,000 fun-only points** for the current session
+- Fun points are not persisted; they display with a 🐹 indicator in score displays
+
 ## API Integration
 
 Backend: Supabase REST API
@@ -110,6 +121,8 @@ Backend: Supabase REST API
 | `FilterBar` | Filter chores by user |
 | `AppHeader` | Consistent header with logo |
 | `AppFooter` | Copyright footer |
+| `StreakBadge` | Bottom-right streak indicator for user cards |
+| `HamsterShower` | Hamster easter egg overlay and click capture |
 | `ErrorBoundary` | Catches JS errors and displays recovery UI |
 
 ### Modal Components

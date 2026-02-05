@@ -8,7 +8,7 @@ A list of planned features and improvements for the Chore Tracker app.
 - [x] **Fix favicon** - Update to use the more recent icon image
 - [ ] **Add iOS PNG icon** - Wire in dedicated PNG file for iOS home screen saving (user will provide)
 - [x] **Add sunglasses emoji next to the crown emoji** - Sunglasses emoji overlaps below the crown for the current week point leader 
-- [x] **Easter Egg** -  When completeing a chore, a user has a 1 in ten chance to trigger an easter egg which will appear a hampster emoji on the screen for no more than 20 seconds and if clicked during that time will trigger a "for fun only" 1,000 points for their name (which will mot persist sessions or be written to the database, its just for fun!
+- [x] **Easter Egg** - When completing a chore, a user has a 1 in 10 chance to trigger a hamster emoji shower for ~4 seconds; clicking during the shower grants +1,000 fun-only points for the current session
 - [x] **Design for Clarity Update** -  went inside of a kid account. There should be more visual indication that that is the user chosen currently. One way would be to box the window or shade the outline of the window with an associated color.
 - [x] **Better Filtering** - When in a user account instead of having the scoreboard at the top with filter, buttons below it, clicking the scoreboard name could expand below it the chores that are assigned to that kid 
 
@@ -29,7 +29,6 @@ A list of planned features and improvements for the Chore Tracker app.
 
 ### Features
 - [ ] **Rewards store** - Let kids redeem points for rewards
-- [ ] **Chore streaks** - Track consecutive days of completing chores
 - [ ] **Family competitions** - Weekly/monthly challenges between kids
 - [ ] **Chore notes** - Allow adding notes or photos to completed chores
 
@@ -78,3 +77,4 @@ place for the app to live.
 - [x] Hash-based routing for deep linking
 - [x] Delete completed chores (admin History view with single/bulk delete)
 - [x] Bulk delete chores (select multiple active chores to delete at once)
+- [x] Chore streaks with weekly badge progression and month-long medal reward
