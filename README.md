@@ -6,12 +6,12 @@ A mobile-friendly chore tracking app for families. Assign tasks, track completio
 
 - **Family Member Profiles** - Each kid gets their own login with custom emoji and color
 - **Two Chore Types**
-  - *Mandatory* - Assigned to specific kids, must be completed
+  - *Mandatory* - Assigned to specific kids and can only be completed in that kid’s profile
   - *Optional* - Anyone can complete for bonus points
 - **Weekly Scoreboard** - Track points earned throughout the week with a custom leader crown badge
 - **Streak Badges** - Streaks activate after two consecutive days (starting with a 2+ chore day) and evolve weekly with a month-long medal reward
 - **Hamster Easter Egg** - 10% chance of a hamster shower after completion; click to earn +1,000 fun-only points for the session
-- **Scoreboard Filtering** - Tap a kid on the scoreboard to filter chores by that kid
+- **Scoreboard Cards & Filtering** - Tap a kid on the scoreboard cards to filter chores by that kid
 - **Batch Assignment** - Randomly assign multiple chores to kids at once
 - **Saved Chores** - Save frequently used chores as templates
 - **Admin Dashboard** - Manage chores, templates, and family members
