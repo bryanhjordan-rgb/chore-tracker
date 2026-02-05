@@ -246,6 +246,33 @@
       );
     }
 
+    function UserIdentityCard({ user, isAdmin, darkMode, onCustomize }) {
+      const styles = getStyles(darkMode);
+      if (isAdmin) {
+        return (
+          <div style={{ ...styles.card, border: darkMode ? '2px solid #333' : '2px solid #e0e0e0', background: darkMode ? '#222736' : '#f6f8fb', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: darkMode ? '#2a2f42' : '#e8eef7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>⚙️</div>
+            <div>
+              <div style={{ fontWeight: '700', fontSize: '16px' }}>Admin Mode</div>
+              <div style={{ fontSize: '12px', color: darkMode ? '#888' : '#777' }}>Full access enabled</div>
+            </div>
+          </div>
+        );
+      }
+      if (!user) return null;
+      return (
+        <div style={{ ...styles.card, border: `2px solid ${user.color}`, background: `${user.color}1A`, display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button onClick={onCustomize} style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'white', border: `2px solid ${user.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', cursor: 'pointer' }} title="Customize your profile">
+            {user.emoji}
+          </button>
+          <div>
+            <div style={{ fontWeight: '700', fontSize: '16px' }}>You are signed in as {user.name}</div>
+            <div style={{ fontSize: '12px', color: darkMode ? '#888' : '#777' }}>Tap your avatar to customize</div>
+          </div>
+        </div>
+      );
+    }
+
     function AppFooter({ darkMode }) {
       return (
         <div style={{ textAlign: 'center', padding: '20px 16px', marginTop: 'auto', color: darkMode ? '#666' : '#999', fontSize: '12px' }}>
@@ -714,7 +741,7 @@
       );
     }
 
-    function Scoreboard({ completions, users, weekOffset = 0, onWeekChange, darkMode }) {
+    function Scoreboard({ completions, users, weekOffset = 0, onWeekChange, darkMode, selectedUser = 'all', onSelectUser }) {
       const styles = getStyles(darkMode);
       const baseDate = new Date();
       baseDate.setDate(baseDate.getDate() + (weekOffset * 7));
@@ -731,14 +758,43 @@
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <button onClick={() => onWeekChange(weekOffset - 1)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', padding: '4px' }}>←</button>
             <div style={{ textAlign: 'center' }}>
-              <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '700' }}>🏆 {isCurrentWeek ? "This Week" : weekOffset === -1 ? "Last Week" : `${Math.abs(weekOffset)} weeks ago`}</h2>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '700' }}>🏆 {isCurrentWeek ? "This Week" : weekOffset === -1 ? "Last Week" : `${Math.abs(weekOffset)} weeks ago`}</h2>
+                {onSelectUser && (
+                  <button
+                    onClick={() => onSelectUser('all')}
+                    style={{
+                      ...styles.button,
+                      padding: '4px 10px',
+                      fontSize: '11px',
+                      background: selectedUser === 'all' ? (darkMode ? '#4ECDC4' : '#2C3E50') : (darkMode ? '#333' : '#f0f0f0'),
+                      color: selectedUser === 'all' ? 'white' : (darkMode ? '#ccc' : '#666')
+                    }}
+                  >
+                    All
+                  </button>
+                )}
+              </div>
               <span style={{ fontSize: '12px', color: '#999' }}>{formatDateShort(start)} - {formatDateShort(end)}</span>
             </div>
             <button onClick={() => onWeekChange(weekOffset + 1)} disabled={isCurrentWeek} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: isCurrentWeek ? 'default' : 'pointer', padding: '4px', opacity: isCurrentWeek ? 0.3 : 1 }}>→</button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
             {weeklyScores.map((s, i) => (
-              <div key={s.name} style={{ background: `${s.color}22`, border: `2px solid ${s.color}44`, borderRadius: '12px', padding: '12px 8px', textAlign: 'center' }}>
+              <div
+                key={s.name}
+                onClick={onSelectUser ? () => onSelectUser(selectedUser === s.name ? 'all' : s.name) : undefined}
+                style={{
+                  background: `${s.color}22`,
+                  border: selectedUser === s.name ? `3px solid ${s.color}` : `2px solid ${s.color}44`,
+                  borderRadius: '12px',
+                  padding: '12px 8px',
+                  textAlign: 'center',
+                  cursor: onSelectUser ? 'pointer' : 'default',
+                  transform: selectedUser === s.name ? 'translateY(-2px)' : 'none',
+                  boxShadow: selectedUser === s.name ? (darkMode ? '0 6px 16px rgba(0,0,0,0.35)' : '0 6px 16px rgba(0,0,0,0.12)') : 'none'
+                }}
+              >
                 <div style={{ fontSize: '20px', position: 'relative', display: 'inline-block' }}>
                   {i === 0 && s.points > 0 && (
                     <div style={{ marginBottom: '4px' }}><CrownWithSunglasses size={28} /></div>
@@ -819,14 +875,19 @@
 
     function ChoreView({ currentUser, isAdmin, chores, completions, users, onComplete, onEdit, onNavigate, onLogout, onSaveUser, darkMode, weekOffset, onWeekChange }) {
       const styles = getStyles(darkMode);
-      const [filter, setFilter] = useState('all');
+      const [filter, setFilter] = useState(isAdmin ? 'all' : currentUser);
       const [showCustomize, setShowCustomize] = useState(false);
       const currentUserObj = users.find(u => u.name === currentUser);
+      const selectedFilterUser = users.find(u => u.name === filter);
       const activeChores = chores.filter(c => c.status === 'active');
       const filteredChores = activeChores.filter(c => { if (filter === 'all') return true; if (c.type === 'optional') return true; return c.assignedTo === filter; });
       const mandatoryChores = filteredChores.filter(c => c.type === 'mandatory');
       const optionalChores = filteredChores.filter(c => c.type === 'optional');
       const hasPendingMandatory = !isAdmin && activeChores.some(c => c.type === 'mandatory' && c.assignedTo === currentUser);
+      useEffect(() => {
+        if (isAdmin) setFilter('all');
+        else if (currentUser) setFilter(currentUser);
+      }, [currentUser, isAdmin]);
       return (
         <div style={{ ...styles.container, padding: '16px', paddingBottom: '100px', display: 'flex', flexDirection: 'column' }}>
           {showCustomize && currentUserObj && <UserCustomizeModal user={currentUserObj} onSave={(updatedUser) => { onSaveUser(updatedUser); setShowCustomize(false); }} onCancel={() => setShowCustomize(false)} darkMode={darkMode} />}
@@ -843,8 +904,16 @@
                 </div>
               </div>
             </header>
-            <Scoreboard completions={completions} users={users} weekOffset={weekOffset} onWeekChange={onWeekChange} darkMode={darkMode} />
-            <FilterBar filter={filter} onFilterChange={setFilter} users={users} darkMode={darkMode} />
+            <UserIdentityCard user={currentUserObj} isAdmin={isAdmin} darkMode={darkMode} onCustomize={() => setShowCustomize(true)} />
+            <Scoreboard completions={completions} users={users} weekOffset={weekOffset} onWeekChange={onWeekChange} darkMode={darkMode} selectedUser={filter} onSelectUser={setFilter} />
+            {filter !== 'all' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '-6px 0 14px' }}>
+                <div style={{ ...styles.tag, background: `${selectedFilterUser?.color || '#45B7D1'}22`, color: selectedFilterUser?.color || '#45B7D1', border: `1px solid ${selectedFilterUser?.color || '#45B7D1'}55` }}>
+                  Showing chores for {filter}
+                </div>
+                <button onClick={() => setFilter('all')} style={{ ...styles.button, padding: '6px 12px', fontSize: '12px', background: darkMode ? '#333' : '#f0f0f0', color: darkMode ? '#ccc' : '#666' }}>Clear</button>
+              </div>
+            )}
             {mandatoryChores.length > 0 && (
               <section style={{ marginBottom: '24px' }}>
                 <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}><span style={{ color: '#FF6B6B' }}>📌</span> Required Chores</h2>

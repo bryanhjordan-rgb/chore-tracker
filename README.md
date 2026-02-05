@@ -9,11 +9,13 @@ A mobile-friendly chore tracking app for families. Assign tasks, track completio
   - *Mandatory* - Assigned to specific kids, must be completed
   - *Optional* - Anyone can complete for bonus points
 - **Weekly Scoreboard** - Track points earned throughout the week with leader crown and sunglasses 👑🕶️
+- **Scoreboard Filtering** - Tap a kid on the scoreboard to filter chores by that kid
 - **Batch Assignment** - Randomly assign multiple chores to kids at once
 - **Saved Chores** - Save frequently used chores as templates
 - **Admin Dashboard** - Manage chores, templates, and family members
 - **Pattern Lock** - Secure admin access with emoji pattern authentication
 - **Profile Customization** - Kids can customize their own emoji and color
+- **Active User Highlight** - Clear visual indicator of which kid is signed in
 - **Undo Completion** - Accidentally marked done? Undo within 5 seconds
 - **History View** - See completed chores grouped by day, navigate between weeks
 - **Deep Linking** - Bookmark and share direct links to views (`#/chores`, `#/history`, etc.)
