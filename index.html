@@ -528,7 +528,7 @@
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', maxWidth: '320px', width: '100%', marginBottom: '24px' }}>
             {users.map((user) => (
               <button key={user.name} onClick={() => { haptic('medium'); onSelect(user.name); }} style={{ ...styles.button, background: user.color, color: 'white', padding: '16px 16px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', position: 'relative', overflow: 'hidden' }}>
-                {leader === user.name && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, background: 'rgba(255,255,255,0.25)', padding: '2px 0', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}><CrownWithSunglasses size={20} /> Leader</div>}
+                {leader === user.name && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, background: 'rgba(255,255,255,0.25)', padding: '2px 0', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}><img src="cool_crown.png" alt="Leader crown" style={{ width: '28px', height: '28px', objectFit: 'contain' }} /> Leader</div>}
                 <span style={{ fontSize: '32px', marginTop: leader === user.name ? '16px' : '0' }}>{user.emoji}</span>
                 <span style={{ fontWeight: '600' }}>{user.name}{streaksByUser?.[user.name]?.hasMedal ? ' 🏅' : ''}</span>
                 <span style={{ fontSize: '12px', opacity: 0.85 }}>
@@ -933,40 +933,6 @@
       );
     }
 
-    function CrownWithSunglasses({ size = 32 }) {
-      return (
-        <svg width={size} height={size} viewBox="0 0 64 64" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
-          {/* Crown */}
-          <path d="M8 48 L8 28 L18 38 L32 20 L46 38 L56 28 L56 48 Z" fill="url(#crownGold)" stroke="#B8860B" strokeWidth="1"/>
-          <ellipse cx="32" cy="48" rx="24" ry="6" fill="url(#crownGold)" stroke="#B8860B" strokeWidth="1"/>
-          {/* Crown jewel */}
-          <ellipse cx="32" cy="42" rx="4" ry="5" fill="#4ECDC4" stroke="#3AA89E" strokeWidth="1"/>
-          {/* Crown tips */}
-          <circle cx="8" cy="28" r="3" fill="url(#crownGold)" stroke="#B8860B" strokeWidth="1"/>
-          <circle cx="18" cy="38" r="3" fill="url(#crownGold)" stroke="#B8860B" strokeWidth="1"/>
-          <circle cx="32" cy="20" r="3" fill="url(#crownGold)" stroke="#B8860B" strokeWidth="1"/>
-          <circle cx="46" cy="38" r="3" fill="url(#crownGold)" stroke="#B8860B" strokeWidth="1"/>
-          <circle cx="56" cy="28" r="3" fill="url(#crownGold)" stroke="#B8860B" strokeWidth="1"/>
-          {/* Sunglasses - positioned over crown */}
-          <rect x="4" y="30" width="56" height="3" rx="1.5" fill="#222"/>
-          <path d="M6 33 Q6 44 18 44 Q30 44 30 33 Z" fill="#222"/>
-          <path d="M34 33 Q34 44 46 44 Q58 44 58 33 Z" fill="#222"/>
-          <rect x="30" y="34" width="4" height="2" rx="1" fill="#222"/>
-          {/* Lens shine */}
-          <ellipse cx="14" cy="37" rx="5" ry="3" fill="#FFF" opacity="0.15"/>
-          <ellipse cx="50" cy="37" rx="5" ry="3" fill="#FFF" opacity="0.15"/>
-          {/* Gradient definitions */}
-          <defs>
-            <linearGradient id="crownGold" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#FFD700"/>
-              <stop offset="50%" stopColor="#DAA520"/>
-              <stop offset="100%" stopColor="#B8860B"/>
-            </linearGradient>
-          </defs>
-        </svg>
-      );
-    }
-
     function Scoreboard({ completions, users, weekOffset = 0, onWeekChange, darkMode, selectedUser = 'all', onSelectUser, streaksByUser, funPointsByUser }) {
       const styles = getStyles(darkMode);
       const baseDate = new Date();
@@ -1027,7 +993,7 @@
               >
                 <div style={{ fontSize: '20px', position: 'relative', display: 'inline-block' }}>
                   {i === 0 && (s.points + (s.funPoints || 0)) > 0 && (
-                    <div style={{ marginBottom: '4px' }}><CrownWithSunglasses size={28} /></div>
+                    <div style={{ marginBottom: '4px' }}><img src="cool_crown.png" alt="Leader crown" style={{ width: '36px', height: '36px', objectFit: 'contain', display: 'block', margin: '0 auto' }} /></div>
                   )}
                   <span>{s.emoji}</span>
                 </div>
