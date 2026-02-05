@@ -6,7 +6,7 @@ A mobile-friendly chore tracking app for families. Assign tasks, track completio
 
 - **Family Member Profiles** - Each kid gets their own login with custom emoji and color
 - **Two Chore Types**
-  - *Mandatory* - Assigned to specific kids, must be completed
+  - *Mandatory* - Assigned to specific kids and can only be completed in that kid’s profile
   - *Optional* - Anyone can complete for bonus points
 - **Weekly Scoreboard** - Track points earned throughout the week with a custom leader crown badge
 - **Streak Badges** - Streaks activate after two consecutive days (starting with a 2+ chore day) and evolve weekly with a month-long medal reward

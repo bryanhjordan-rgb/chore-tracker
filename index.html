@@ -1001,7 +1001,8 @@
       const [showPicker, setShowPicker] = useState(false);
       const [completing, setCompleting] = useState(false);
       const isLockedOptional = !isAdmin && chore.type === 'optional' && optionalLocked;
-      const canComplete = !isLockedOptional && (isAdmin || chore.type === 'optional' || chore.assignedTo === currentUser);
+      const isAssignedToAnotherUser = chore.assignedTo && chore.assignedTo !== currentUser;
+      const canComplete = !isLockedOptional && !isAssignedToAnotherUser && (isAdmin || chore.type === 'optional' || chore.assignedTo === currentUser);
       const isMandatory = chore.type === 'mandatory';
       const user = users.find(u => u.name === chore.assignedTo);
       const handleCompleteClick = () => {

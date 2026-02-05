@@ -16,7 +16,7 @@
 
 ```
 chore-tracker/
-├── index.html        # Entire application (~1870 lines)
+├── index.html        # Entire application (~1865 lines)
 ├── config.example.js # Configuration template (copy to config.js)
 ├── config.js         # Local configuration (gitignored, user-created)
 ├── icon.svg          # App icon (favicon + iOS home screen)
@@ -64,7 +64,7 @@ const CONFIG = {
 - **Admin**: Full access with pattern lock protection - manage chores, templates, users, settings
 
 ### Chore Types
-- **Mandatory**: Assigned to specific kids, no points, tagged "Required"
+- **Mandatory**: Assigned to specific kids, no points, tagged "Required"; can only be completed from that kid's profile
 - **Optional**: Any user can complete for points, tagged "Optional"
 
 ### Weekly Scoring
