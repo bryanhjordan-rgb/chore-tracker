@@ -16,7 +16,7 @@
 
 ```
 chore-tracker/
-├── index.html        # Entire application (~1905 lines)
+├── index.html        # Entire application (~1870 lines)
 ├── config.example.js # Configuration template (copy to config.js)
 ├── config.js         # Local configuration (gitignored, user-created)
 ├── icon.svg          # App icon (favicon + iOS home screen)
@@ -70,7 +70,7 @@ const CONFIG = {
 ### Weekly Scoring
 - Points are tracked on a weekly basis (Monday-Sunday)
 - Scoreboard shows current week leader with the custom `cool_crown.png` badge
-- Scoreboard cards are tappable in the Chore view to filter chores by kid; use "All" to reset
+- Scoreboard cards are tappable in the Chore view to filter chores by kid; tap the active card again to reset
 - History view shows completions grouped by day within the selected week
 - Week navigation allows viewing past weeks
 
@@ -116,7 +116,7 @@ Backend: Supabase REST API
 | `HistoryView` | Completion history with weekly scope and day grouping |
 | `ManageView` | Admin chore management and batch assignment |
 | `SettingsView` | Appearance and user customization |
-| `Scoreboard` | Weekly points leaderboard with navigation |
+| `Scoreboard` | Weekly points leaderboard with folder-style container and week navigation |
 | `ChoreCard` | Individual chore display with completion animation |
 | `FilterBar` | Filter chores by user |
 | `AppHeader` | Consistent header with logo |

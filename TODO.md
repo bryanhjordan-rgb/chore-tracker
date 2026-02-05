@@ -79,3 +79,4 @@ place for the app to live.
 - [x] Delete completed chores (admin History view with single/bulk delete)
 - [x] Bulk delete chores (select multiple active chores to delete at once)
 - [x] Chore streaks with weekly badge progression and month-long medal reward
+- [x] Folder-style scoreboard container wrapping the chore list with a consolidated user header
