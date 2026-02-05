@@ -16,7 +16,7 @@
 
 ```
 chore-tracker/
-├── index.html        # Entire application (~1570 lines)
+├── index.html        # Entire application (~1640 lines)
 ├── config.example.js # Configuration template (copy to config.js)
 ├── config.js         # Local configuration (gitignored, user-created)
 ├── icon.svg          # App icon (favicon + iOS home screen)
@@ -70,6 +70,7 @@ const CONFIG = {
 ### Weekly Scoring
 - Points are tracked on a weekly basis (Monday-Sunday)
 - Scoreboard shows current week leader with crown and sunglasses badge (👑🕶️)
+- Scoreboard cards are tappable in the Chore view to filter chores by kid; use "All" to reset
 - History view shows completions grouped by day within the selected week
 - Week navigation allows viewing past weeks
 
@@ -204,6 +205,7 @@ Kids can customize their own profile by tapping their emoji in the chore view:
 - Choose from ~80 emoji options (various skin tones, animals, objects)
 - Pick any color using color picker
 - Changes sync to database
+ - Chore view includes an identity card to clearly show who is signed in
 
 Admin can customize all kids via Settings -> Customize Kids:
 - Edit name, emoji, and color for each kid
