@@ -6,7 +6,7 @@ A list of planned features and improvements for the Chore Tracker app.
 
 ### Icon & Branding
 - [x] **Fix favicon** - Update to use the more recent icon image
-- [ ] **Add iOS PNG icon** - Wire in dedicated PNG file for iOS home screen saving (user will provide)
+- [x] **Add iOS PNG icon** - Export `apple-touch-icon.png` from `icon.png` (180x180) and wire for iOS home screen saving
 - [x] **Add sunglasses emoji next to the crown emoji** - Sunglasses emoji overlaps below the crown for the current week point leader 
 - [x] **Swap leader icon to custom crown graphic** - Use `cool_crown.png` and make it larger than the user emojis
 - [x] **Easter Egg** - When completing a chore, a user has a 1 in 10 chance to trigger a hamster emoji shower for ~4 seconds; clicking during the shower grants +1,000 fun-only points for the current session
@@ -71,7 +71,7 @@ place for the app to live.
 - [x] Dark mode support
 - [x] Multi-user chore assignment
 - [x] Template/saved chores system
-- [x] Fix favicon (already using icon.svg)
+- [x] Fix favicon (using PNG favicon + iOS touch icon)
 - [x] Sunglasses emoji for weekly leader (overlapping 👑🕶️)
 - [x] Chore completion animations
 - [x] React error boundaries for crash recovery

@@ -4,8 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Do Your Chores, Bruh</title>
-  <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Chores">
@@ -387,7 +388,7 @@
     function AppHeader({ darkMode }) {
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', paddingBottom: '12px', borderBottom: darkMode ? '1px solid #333' : '1px solid #e0e0e0' }}>
-          <img src="icon.svg" alt="Logo" style={{ width: '48px', height: '48px' }} />
+          <img src="icon.png" alt="Logo" style={{ width: '48px', height: '48px' }} />
           <span style={{ fontSize: '18px', fontWeight: '700', color: darkMode ? '#e0e0e0' : '#2C3E50' }}>Do Your Chores, Bruh</span>
         </div>
       );
@@ -520,7 +521,7 @@
         <div style={{ ...styles.container, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', position: 'relative' }}>
           <div style={{ textAlign: 'center', marginBottom: '40px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', marginBottom: '8px' }}>
-              <img src="icon.svg" alt="Logo" style={{ width: '64px', height: '64px' }} />
+              <img src="icon.png" alt="Logo" style={{ width: '64px', height: '64px' }} />
               <h1 style={{ ...styles.title, fontSize: '28px', margin: 0 }}>Do Your Chores, Bruh</h1>
             </div>
             <p style={styles.subtitle}>Who's checking in?</p>
@@ -1836,7 +1837,7 @@
         return (
           <div style={{ ...styles.container, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center' }}>
-              <img src="icon.svg" alt="Logo" style={{ width: '64px', height: '64px', marginBottom: '16px' }} />
+              <img src="icon.png" alt="Logo" style={{ width: '64px', height: '64px', marginBottom: '16px' }} />
               <p style={{ color: darkMode ? '#888' : '#999' }}>Loading...</p>
             </div>
           </div>
