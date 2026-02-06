@@ -19,7 +19,11 @@ chore-tracker/
 ├── index.html        # Entire application (~1865 lines)
 ├── config.example.js # Configuration template (copy to config.js)
 ├── config.js         # Local configuration (gitignored, user-created)
-├── icon.svg          # App icon (favicon + iOS home screen)
+├── icon.png          # App icon (PNG used in app + favicon sources)
+├── icon.svg          # App icon (SVG source)
+├── apple-touch-icon.png # iOS home screen icon (180x180)
+├── favicon-16.png    # Browser favicon (16x16 PNG)
+├── favicon-32.png    # Browser favicon (32x32 PNG)
 ├── CLAUDE.md         # Developer documentation
 ├── README.md         # Project readme
 └── TODO.md           # Future improvements
