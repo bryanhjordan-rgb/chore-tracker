@@ -124,12 +124,22 @@
     const api = {
       async getAll() {
         try {
+          const getHeaders = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' };
           const [choresRes, completionsRes, templatesRes, usersRes] = await Promise.all([
-            fetch(`${SUPABASE_URL}/chores?select=*`, { headers: supabaseHeaders }),
-            fetch(`${SUPABASE_URL}/completions?select=*`, { headers: supabaseHeaders }),
-            fetch(`${SUPABASE_URL}/templates?select=*`, { headers: supabaseHeaders }),
-            fetch(`${SUPABASE_URL}/users?select=*`, { headers: supabaseHeaders })
+            fetch(`${SUPABASE_URL}/chores?select=*`, { headers: getHeaders }),
+            fetch(`${SUPABASE_URL}/completions?select=*`, { headers: getHeaders }),
+            fetch(`${SUPABASE_URL}/templates?select=*`, { headers: getHeaders }),
+            fetch(`${SUPABASE_URL}/users?select=*`, { headers: getHeaders })
           ]);
+          const responses = [choresRes, completionsRes, templatesRes, usersRes];
+          const names = ['chores', 'completions', 'templates', 'users'];
+          for (let i = 0; i < responses.length; i++) {
+            if (!responses[i].ok) {
+              const errText = await responses[i].text();
+              console.error(`API getAll ${names[i]} failed (${responses[i].status}):`, errText);
+              return null;
+            }
+          }
           const [chores, completions, templates, users] = await Promise.all([
             choresRes.json(), completionsRes.json(), templatesRes.json(), usersRes.json()
           ]);
@@ -146,55 +156,64 @@
       },
       async addChore(chore) {
         try {
-          await fetch(`${SUPABASE_URL}/chores`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify(toSnakeCase(chore)) });
+          const res = await fetch(`${SUPABASE_URL}/chores`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify(toSnakeCase(chore)) });
+          if (!res.ok) { console.error('API addChore failed:', res.status, await res.text()); return false; }
           return true;
         } catch (error) { console.error('API addChore error:', error); return false; }
       },
       async addChores(chores) {
         try {
-          await fetch(`${SUPABASE_URL}/chores`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify(chores.map(toSnakeCase)) });
+          const res = await fetch(`${SUPABASE_URL}/chores`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify(chores.map(toSnakeCase)) });
+          if (!res.ok) { console.error('API addChores failed:', res.status, await res.text()); return false; }
           return true;
         } catch (error) { console.error('API addChores error:', error); return false; }
       },
       async updateChore(chore) {
         try {
-          await fetch(`${SUPABASE_URL}/chores?id=eq.${chore.id}`, { method: 'PATCH', headers: supabaseHeaders, body: JSON.stringify(toSnakeCase(chore)) });
+          const res = await fetch(`${SUPABASE_URL}/chores?id=eq.${chore.id}`, { method: 'PATCH', headers: supabaseHeaders, body: JSON.stringify(toSnakeCase(chore)) });
+          if (!res.ok) { console.error('API updateChore failed:', res.status, await res.text()); return false; }
           return true;
         } catch (error) { console.error('API updateChore error:', error); return false; }
       },
       async deleteChore(id) {
         try {
-          await fetch(`${SUPABASE_URL}/chores?id=eq.${id}`, { method: 'DELETE', headers: supabaseHeaders });
+          const res = await fetch(`${SUPABASE_URL}/chores?id=eq.${id}`, { method: 'DELETE', headers: supabaseHeaders });
+          if (!res.ok) { console.error('API deleteChore failed:', res.status, await res.text()); return false; }
           return true;
         } catch (error) { console.error('API deleteChore error:', error); return false; }
       },
       async addCompletion(completion) {
         try {
-          await fetch(`${SUPABASE_URL}/completions`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify(toSnakeCase(completion)) });
+          const res = await fetch(`${SUPABASE_URL}/completions`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify(toSnakeCase(completion)) });
+          if (!res.ok) { console.error('API addCompletion failed:', res.status, await res.text()); return false; }
           return true;
         } catch (error) { console.error('API addCompletion error:', error); return false; }
       },
       async deleteCompletion(id) {
         try {
-          await fetch(`${SUPABASE_URL}/completions?id=eq.${id}`, { method: 'DELETE', headers: supabaseHeaders });
+          const res = await fetch(`${SUPABASE_URL}/completions?id=eq.${id}`, { method: 'DELETE', headers: supabaseHeaders });
+          if (!res.ok) { console.error('API deleteCompletion failed:', res.status, await res.text()); return false; }
           return true;
         } catch (error) { console.error('API deleteCompletion error:', error); return false; }
       },
       async addTemplate(template) {
         try {
-          await fetch(`${SUPABASE_URL}/templates`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify(toSnakeCase(template)) });
+          const res = await fetch(`${SUPABASE_URL}/templates`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify(toSnakeCase(template)) });
+          if (!res.ok) { console.error('API addTemplate failed:', res.status, await res.text()); return false; }
           return true;
         } catch (error) { console.error('API addTemplate error:', error); return false; }
       },
       async updateTemplate(template) {
         try {
-          await fetch(`${SUPABASE_URL}/templates?id=eq.${template.id}`, { method: 'PATCH', headers: supabaseHeaders, body: JSON.stringify(toSnakeCase(template)) });
+          const res = await fetch(`${SUPABASE_URL}/templates?id=eq.${template.id}`, { method: 'PATCH', headers: supabaseHeaders, body: JSON.stringify(toSnakeCase(template)) });
+          if (!res.ok) { console.error('API updateTemplate failed:', res.status, await res.text()); return false; }
           return true;
         } catch (error) { console.error('API updateTemplate error:', error); return false; }
       },
       async deleteTemplate(id) {
         try {
-          await fetch(`${SUPABASE_URL}/templates?id=eq.${id}`, { method: 'DELETE', headers: supabaseHeaders });
+          const res = await fetch(`${SUPABASE_URL}/templates?id=eq.${id}`, { method: 'DELETE', headers: supabaseHeaders });
+          if (!res.ok) { console.error('API deleteTemplate failed:', res.status, await res.text()); return false; }
           return true;
         } catch (error) { console.error('API deleteTemplate error:', error); return false; }
       },
