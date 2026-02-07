@@ -81,3 +81,5 @@ place for the app to live.
 - [x] Chore streaks with weekly badge progression and month-long medal reward
 - [x] Folder-style scoreboard container wrapping the chore list with a consolidated user header
 - [x] Restrict assigned chores to be completed only from the assigned kid profile
+- [x] Streak reminder banner with contextual tips for maintaining and building streaks
+- [x] Improved streak code readability with inline documentation

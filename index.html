@@ -300,18 +300,75 @@
       return dayInWeek === 1 ? emoji : `${emoji}x${dayInWeek}`;
     };
 
+    // Generate a human-readable streak message for the reminder banner.
+    // Returns { icon, title, detail } or null if nothing useful to say.
+    const getStreakMessage = (streakInfo) => {
+      if (!streakInfo) return null;
+      const { currentStreak, todayCount, consecutiveDays, nearStreak, hasMedal } = streakInfo;
+
+      // Active streak: celebrate and explain how to keep it
+      if (currentStreak >= 28) {
+        return { icon: '🏅', title: `Legendary ${currentStreak}-day streak!`, detail: 'You earned the permanent medal! Keep it going by completing at least 1 chore today.' };
+      }
+      if (currentStreak >= 2) {
+        const nextMilestone = currentStreak < 7 ? 7 : currentStreak < 14 ? 14 : currentStreak < 21 ? 21 : 28;
+        const daysToMilestone = nextMilestone - currentStreak;
+        const milestoneEmoji = STREAK_WEEK_EMOJIS[Math.floor((nextMilestone - 1) / 7)] || '👑';
+        const badge = getStreakBadgeText(currentStreak);
+        if (todayCount >= 1) {
+          return { icon: badge, title: `${currentStreak}-day streak!`, detail: `${daysToMilestone} more day${daysToMilestone === 1 ? '' : 's'} to reach ${milestoneEmoji}. Come back tomorrow and do at least 1 chore to keep it alive!` };
+        } else {
+          return { icon: '⚠️', title: `${currentStreak}-day streak at risk!`, detail: `Complete at least 1 chore today to keep your streak going. Miss today and it resets!` };
+        }
+      }
+
+      // Not in a streak yet — motivational nudge
+      if (nearStreak && todayCount === 0) {
+        return { icon: '👀', title: 'You were active yesterday!', detail: 'Complete 2+ chores today to start a streak, or at least 1 to stay on track.' };
+      }
+      if (todayCount === 1 && consecutiveDays <= 1) {
+        return { icon: '💪', title: 'Good start!', detail: 'Complete 1 more chore today to hit the 2-chore minimum and start building a streak. Then keep it up tomorrow!' };
+      }
+      if (todayCount >= 2 && consecutiveDays <= 1) {
+        return { icon: '🌱', title: 'Streak starting!', detail: 'You hit 2+ chores today — now come back tomorrow and do at least 1 to lock in a 2-day streak!' };
+      }
+
+      return null;
+    };
+
+    // Streak calculation: analyzes a map of { "YYYY-MM-DD": choreCount } to find streaks.
+    //
+    // Streak rules:
+    //   1. A streak STARTS on a day where you complete 2+ chores.
+    //   2. After that first day, complete 1+ chore each consecutive day to keep it going.
+    //   3. The streak length must be at least 2 days to count.
+    //   4. Missing a day (0 chores) breaks the streak.
+    //
+    // Returns: { currentStreak, maxStreak, todayCount, consecutiveDays, nearStreak }
+    //   - currentStreak: length of the active streak ending today (0 if none)
+    //   - maxStreak: longest streak ever achieved
+    //   - todayCount: how many chores completed today
+    //   - consecutiveDays: how many consecutive days (including today) have 1+ chore,
+    //     even if no streak has activated yet (useful for "almost there" messaging)
+    //   - nearStreak: true if the user has been active consecutively but hasn't
+    //     triggered a streak yet (e.g., did 1 chore yesterday, needs 2+ to start)
     const getStreakStatsFromCounts = (dayCounts) => {
+      const todayKey = getDayKey(new Date());
+      const todayCount = dayCounts[todayKey] || 0;
       const dayKeys = Object.keys(dayCounts);
-      if (dayKeys.length === 0) return { currentStreak: 0, maxStreak: 0 };
+      if (dayKeys.length === 0) return { currentStreak: 0, maxStreak: 0, todayCount, consecutiveDays: 0, nearStreak: false };
       const sortedKeys = dayKeys.sort((a, b) => parseDayKey(a) - parseDayKey(b));
       let maxStreak = 0;
 
+      // Walk through all days with activity, grouping consecutive days into "runs"
       let runKeys = [];
       const finalizeRun = () => {
         if (runKeys.length === 0) return;
         const counts = runKeys.map(key => dayCounts[key]);
+        // Find the first day in this run with 2+ chores (streak activation day)
         const firstEligibleIndex = counts.findIndex(count => count >= 2);
         if (firstEligibleIndex !== -1) {
+          // Streak length = from activation day to end of run
           const length = counts.length - firstEligibleIndex;
           if (length >= 2) {
             maxStreak = Math.max(maxStreak, length);
@@ -329,17 +386,22 @@
         if (isNextDay(lastKey, key)) {
           runKeys.push(key);
         } else {
+          // Gap detected — finalize the previous run and start a new one
           finalizeRun();
           runKeys.push(key);
         }
       });
       finalizeRun();
 
-      const todayKey = getDayKey(new Date());
+      // Calculate the current active streak (must include today)
       if (!dayCounts[todayKey] || dayCounts[todayKey] < 1) {
-        return { currentStreak: 0, maxStreak };
+        // No chores today — check if yesterday had activity for "near streak" detection
+        const yesterdayKey = getDayKey(addDays(new Date(), -1));
+        const yesterdayCount = dayCounts[yesterdayKey] || 0;
+        return { currentStreak: 0, maxStreak, todayCount, consecutiveDays: 0, nearStreak: yesterdayCount >= 1 };
       }
 
+      // Walk backwards from today to find the current consecutive run
       const currentRunKeys = [todayKey];
       let cursorKey = todayKey;
       while (true) {
@@ -348,14 +410,21 @@
         currentRunKeys.unshift(prevKey);
         cursorKey = prevKey;
       }
+      const consecutiveDays = currentRunKeys.length;
       const currentCounts = currentRunKeys.map(key => dayCounts[key]);
+      // Find the first 2+ chore day in this run to determine streak start
       const currentEligibleIndex = currentCounts.findIndex(count => count >= 2);
       const currentStreakRaw = currentEligibleIndex === -1 ? 0 : currentCounts.length - currentEligibleIndex;
       const currentStreak = currentStreakRaw >= 2 ? currentStreakRaw : 0;
 
-      return { currentStreak, maxStreak };
+      // "nearStreak" = consecutive days of activity but no streak yet
+      // (e.g., did 1 chore each day for 3 days — needs a 2+ day to activate)
+      const nearStreak = currentStreak === 0 && consecutiveDays >= 1;
+
+      return { currentStreak, maxStreak, todayCount, consecutiveDays, nearStreak };
     };
 
+    // Build streak stats for each user from their completion history
     const buildStreaksByUser = (completions, users) => {
       const result = {};
       users.forEach((user) => {
@@ -369,7 +438,10 @@
         result[user.name] = {
           currentStreak: stats.currentStreak,
           maxStreak: stats.maxStreak,
-          hasMedal: stats.maxStreak >= 28
+          hasMedal: stats.maxStreak >= 28,
+          todayCount: stats.todayCount,
+          consecutiveDays: stats.consecutiveDays,
+          nearStreak: stats.nearStreak
         };
       });
       return result;
@@ -466,6 +538,31 @@
           }}
         >
           {text}
+        </div>
+      );
+    }
+
+    function StreakReminder({ streakInfo, darkMode, userColor }) {
+      const msg = getStreakMessage(streakInfo);
+      if (!msg) return null;
+      const isAtRisk = msg.icon === '⚠️';
+      const accentColor = isAtRisk ? '#FF6B6B' : (userColor || '#4ECDC4');
+      return (
+        <div style={{
+          background: darkMode ? `${accentColor}18` : `${accentColor}12`,
+          border: `1.5px solid ${accentColor}${isAtRisk ? '88' : '44'}`,
+          borderRadius: '14px',
+          padding: '12px 14px',
+          marginBottom: '14px',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '10px'
+        }}>
+          <span style={{ fontSize: '22px', lineHeight: '1.2', flexShrink: 0 }}>{msg.icon}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: '700', fontSize: '14px', marginBottom: '2px', color: darkMode ? '#e8e8e8' : '#2C3E50' }}>{msg.title}</div>
+            <div style={{ fontSize: '12px', lineHeight: '1.4', color: darkMode ? '#a0a8b8' : '#5a6a7a' }}>{msg.detail}</div>
+          </div>
         </div>
       );
     }
@@ -1109,6 +1206,7 @@
             <div style={{ background: folderSurface, border: `2px solid ${folderBorder}`, borderRadius: '20px', padding: '16px', boxShadow: folderShadow, marginBottom: '20px', position: 'relative', overflow: 'visible' }}>
               <Scoreboard completions={completions} users={users} weekOffset={weekOffset} onWeekChange={onWeekChange} darkMode={darkMode} selectedUser={filter} onSelectUser={setFilter} streaksByUser={streaksByUser} funPointsByUser={funPointsByUser} surfaceColor={folderSurface} />
               <div style={{ borderTop: `2px solid ${folderBorder}`, marginTop: '6px', paddingTop: '16px' }}>
+                {!isAdmin && currentUser && <StreakReminder streakInfo={streaksByUser?.[currentUser]} darkMode={darkMode} userColor={currentUserObj?.color} />}
                 {filter !== 'all' && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '-6px 0 14px' }}>
                     <div style={{ ...styles.tag, background: `${selectedFilterUser?.color || '#45B7D1'}22`, color: selectedFilterUser?.color || '#45B7D1', border: `1px solid ${selectedFilterUser?.color || '#45B7D1'}55` }}>

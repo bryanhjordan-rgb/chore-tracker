@@ -83,6 +83,11 @@ const CONFIG = {
 - Weekly badge progression: Week 1 🔥, Week 2 🎉, Week 3 🏆, Week 4 👑 (day 1 shows emoji, day 2+ shows `xN`)
 - A 28-day streak grants a permanent 🏅 next to the kid's name
 - Current streak badges display in the bottom-right corner of user cards and the scoreboard tiles
+- A **StreakReminder** banner shows in the ChoreView for kids, providing contextual messages:
+  - Active streak: shows current length, next milestone, and how to maintain it
+  - At risk: warns if no chores done today while a streak is active
+  - Near streak: nudges if the kid was active yesterday but hasn't started today
+  - Starting: encourages hitting the 2-chore minimum or returning tomorrow
 
 ### Hamster Easter Egg
 - 10% chance on chore completion to trigger a 4-second hamster shower overlay
@@ -126,6 +131,7 @@ Backend: Supabase REST API
 | `AppHeader` | Consistent header with logo |
 | `AppFooter` | Copyright footer |
 | `StreakBadge` | Bottom-right streak indicator for user cards |
+| `StreakReminder` | Contextual streak status banner in ChoreView |
 | `HamsterShower` | Hamster easter egg overlay and click capture |
 | `ErrorBoundary` | Catches JS errors and displays recovery UI |
 
